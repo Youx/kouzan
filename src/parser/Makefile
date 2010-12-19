@@ -7,8 +7,11 @@
 
 CFLAGS=-g -Wall -fPIC
 
-main: libnbt.so level_data.o
-	gcc -o main -L. -lnbt -lz level_data.o -g
+level_data_test: libnbt.so level_data.c level_data.h
+	gcc -o $@ -L. -lnbt -lz -DLEVEL_DATA_TEST level_data.c -g
+
+#main: libnbt.so level_data.o
+#	gcc -o main -L. -lnbt -lz level_data.o -g
 
 libnbt.a: nbt.o endianness.o
 	ar -rcs libnbt.a nbt.o endianness.o
@@ -18,4 +21,4 @@ libnbt.so: nbt.o endianness.o
 
 nbt.o: nbt.h nbt.c
 endianness.o: endianness.h endianness.c
-level_data.o: level_data.c
+level_data.o: level_data.c level_data.h

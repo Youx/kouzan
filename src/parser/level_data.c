@@ -3,21 +3,9 @@
 #include <time.h>
 
 #include "nbt.h"
+#include "level_data.h"
 
-typedef struct {
-	long tod;	/* time of day */
-	long last_played;
-	/* player inventory */
-	struct {
-		int x;
-		int y;
-		int z;
-	} spawn;
-	long size;	/* size on disk */
-	long seed;	/* random seed */
-} level_data_t;
-
-void print_file(level_data_t *lvl)
+void level_data_print(level_data_t *lvl)
 {
 	long real_t = (((lvl->tod + 6000) % 24000) * 3.6);
 	long lp = lvl->last_played/1000;
@@ -29,7 +17,7 @@ void print_file(level_data_t *lvl)
 	printf("Seed		: %li\n", lvl->seed);
 }
 
-level_data_t *parse_file(char *f)
+level_data_t *level_data_parse(char *f)
 {
 	level_data_t *lvl = calloc(1, sizeof(level_data_t));
 	nbt_file *nbt;
@@ -79,9 +67,13 @@ level_data_t *parse_file(char *f)
 	return lvl;
 }
 
+#ifdef LEVEL_DATA_TEST
+
 int main()
 {
 	level_data_t *lvl;
-	lvl = parse_file("../../save/world/level.dat");
-	print_file(lvl);
+	lvl = level_data_parse("../../save/world/level.dat");
+	level_data_print(lvl);
 }
+
+#endif
