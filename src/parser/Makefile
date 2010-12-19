@@ -6,19 +6,28 @@
 # -----------------------------------------------------------------------------
 
 CFLAGS=-g -Wall -fPIC
+RM=rm
+
+default: level_data_test chunk_test
 
 level_data_test: libnbt.so level_data.c level_data.h
 	gcc -o $@ -L. -lnbt -lz -DLEVEL_DATA_TEST level_data.c -g
 
+chunk_test: libnbt.so chunk.c chunk.h
+	gcc -o $@ -L. -lnbt -lz -DCHUNK_TEST chunk.c -g
+
 #main: libnbt.so level_data.o
 #	gcc -o main -L. -lnbt -lz level_data.o -g
-
-libnbt.a: nbt.o endianness.o
-	ar -rcs libnbt.a nbt.o endianness.o
 
 libnbt.so: nbt.o endianness.o
 	gcc -fPIC -lz -shared -o libnbt.so nbt.o endianness.o
 
+clean:
+	$(RM) -rf *.{o,a,so}
+	$(RM) -rf level_data_test
+	$(RM) -rf chunk_test
+
 nbt.o: nbt.h nbt.c
 endianness.o: endianness.h endianness.c
 level_data.o: level_data.c level_data.h
+chunk.o: chunk.c chunk.h
