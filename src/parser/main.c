@@ -157,6 +157,21 @@ int draw_cube(int x, int y, int z, char type, neighbours_t *nghb)
 		case 73: /* redstone ore */
 			glColor3ub(128, 0, 0);
 			break;
+		case 49: /* obsidian */
+			glColor3ub(0, 0, 0);
+			break;
+		case 11: /* lava */
+			glColor3ub(255, 64, 0);
+			break;
+		case 48: /* mossy cobblestone */
+			glColor3ub(0, 64, 0);
+			break;
+		case 4: /* cobblestone */
+			glColor3ub(96, 96, 96);
+			break;
+		case 56: /* diamond */
+			glColor3ub(0, 0, 200);
+			break;
 		default:
 			printf("Unknown color for : %i\n", type);
 			glColor3ub(200, 200, 200);
