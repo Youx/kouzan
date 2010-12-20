@@ -114,12 +114,29 @@ int main(int argc, char *argv[])
 	}
 	pthread_t th;
 	pthread_create(&th, NULL, &sdl_th, NULL);
+
+#ifdef BENCHMARK
+	int start_bench, end_bench;
+	int frames = 0;
+	start_bench = SDL_GetTicks();
+	while (1) {
+		end_bench = SDL_GetTicks();
+		if (end_bench - start_bench > 1000) {
+			printf("%f fps\n", frames * 1000.f / (double)(end_bench - start_bench));
+			start_bench = end_bench;
+			frames = 0;
+		}
+		draw();
+		frames++;
+	}
+#else
 	while (1) {
 		if (need_redraw) {
 			draw();
 			need_redraw = 0;
 		}
 	}
+#endif
 
 	return 0;
 }
@@ -278,10 +295,6 @@ void draw()
 {
 
 	int x, z;
-#ifdef BENCHMARK
-	int start_bench, end_bench;
-	start_bench = SDL_GetTicks();
-#endif
 
 	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
@@ -300,8 +313,4 @@ void draw()
 	}
 	glFlush();
 	SDL_GL_SwapBuffers();
-#ifdef BENCHMARK
-	end_bench = SDL_GetTicks();
-	printf("Total time to render : %ims\n", end_bench - start_bench);
-#endif
 }
