@@ -2,6 +2,7 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <stdlib.h>
+#include <pthread.h>
 
 #include "chunk.h"
 
@@ -19,11 +20,55 @@ void draw();
 chunk_t *ch[MAX_X][MAX_Z];
 GLuint chunk_dl[MAX_X][MAX_Z];
 void build_chunk_display_list(chunk_t *ch);
+int need_redraw = 1;
 
-int main(int argc, char *argv[])
+void *sdl_th(void *data)
 {
 	SDL_Event event;
 	int button = 0;
+	for (;;)
+	{
+		SDL_WaitEvent(&event);
+
+		switch(event.type)
+		{
+			case SDL_MOUSEBUTTONDOWN:
+				//printf("button %i\n", event.button.button);
+				switch (event.button.button) {
+					case 1:
+						button = 1;
+						break;
+					case 4: /* scroll up */
+						distance -=1;
+						need_redraw = 1;
+						break;
+					case 5: /* scroll down */
+						distance +=1;
+						need_redraw = 1;
+						break;
+				}
+				break;
+			case SDL_MOUSEBUTTONUP:
+				button = 0;
+				break;
+			case SDL_MOUSEMOTION:
+				if (button) {
+					angle_x = (angle_x + event.motion.xrel)%360;
+					angle_y = (angle_y + event.motion.yrel)%360;
+					need_redraw = 1;
+				}
+				break;
+			case SDL_QUIT:
+				exit(0);
+				break;
+		}
+	//	draw();
+
+	}
+}
+
+int main(int argc, char *argv[])
+{
 	int x, z;
 
 	//ch = chunk_parse("../../save/world/0/6/c.0.6.dat");
@@ -65,47 +110,13 @@ int main(int argc, char *argv[])
 			glEndList();
 		}
 	}
-
-	draw();
-
-	for (;;)
-	{
-		SDL_WaitEvent(&event);
-
-		switch(event.type)
-		{
-			case SDL_MOUSEBUTTONDOWN:
-				//printf("button %i\n", event.button.button);
-				switch (event.button.button) {
-					case 1:
-						button = 1;
-						break;
-					case 4: /* scroll up */
-						distance -=1;
-						draw();
-						break;
-					case 5: /* scroll down */
-						distance +=1;
-						draw();
-						break;
-				}
-				break;
-			case SDL_MOUSEBUTTONUP:
-				button = 0;
-				break;
-			case SDL_MOUSEMOTION:
-				if (button) {
-					angle_x = (angle_x + event.motion.xrel)%360;
-					angle_y = (angle_y + event.motion.yrel)%360;
-					draw();
-				}
-				break;
-			case SDL_QUIT:
-				exit(0);
-				break;
+	pthread_t th;
+	pthread_create(&th, NULL, &sdl_th, NULL);
+	while (1) {
+		if (need_redraw) {
+			draw();
+			need_redraw = 0;
 		}
-	//	draw();
-
 	}
 
 	return 0;
