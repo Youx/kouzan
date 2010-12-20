@@ -13,6 +13,8 @@ int angle_z = 0;
 int distance = 60;
 
 void draw();
+GLuint chunk_dl;
+void build_chunk_display_list(chunk_t *ch);
 
 int main(int argc, char *argv[])
 {
@@ -40,6 +42,11 @@ int main(int argc, char *argv[])
 	GLfloat position[] = { -1.5f, 1.0f, -4.0f, 1.0f };
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
 	glLightfv(GL_LIGHT0, GL_POSITION, position);
+	/* put the whole chunk in a render list */
+	chunk_dl = glGenLists (1);
+	glNewList(chunk_dl, GL_COMPILE);
+	build_chunk_display_list(ch);
+	glEndList();
 
 	draw();
 
@@ -192,27 +199,12 @@ int draw_cube(int x, int y, int z, char type, neighbours_t *nghb)
 	glEnd();
 }
 
-void draw()
+void build_chunk_display_list(chunk_t *ch)
 {
 	long i;
 	int x, y, z;
-
-#ifdef BENCHMARK
-	int start_bench, end_bench;
-	start_bench = SDL_GetTicks();
-#endif
-
-	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-
-	glMatrixMode( GL_MODELVIEW );
-	glLoadIdentity( );
-	//gluLookAt(-1,64+distance,-1,8,64,8,0,1,0);
-	gluLookAt(0,32+distance,0,8,32,8,0,1,0);
-	glRotated(angle_x, 1, 0, 0);
-	glRotated(angle_y, 0, 1, 0);
-	//glRotated(angle_z, 0, 0, 1);
-	//printf("=====================\n");
 	neighbours_t nghb = {0};
+
 	i = 0;
 	for (x = 0 ; x < 16 ; x++) {
 		for (z = 0 ; z < 16 ; z++) {
@@ -236,7 +228,27 @@ void draw()
 			}
 		}
 	}
+}
 
+void draw()
+{
+
+#ifdef BENCHMARK
+	int start_bench, end_bench;
+	start_bench = SDL_GetTicks();
+#endif
+
+	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+
+	glMatrixMode( GL_MODELVIEW );
+	glLoadIdentity( );
+	//gluLookAt(-1,64+distance,-1,8,64,8,0,1,0);
+	gluLookAt(0,32+distance,0,8,32,8,0,1,0);
+	glRotated(angle_x, 1, 0, 0);
+	glRotated(angle_y, 0, 1, 0);
+	//glRotated(angle_z, 0, 0, 1);
+	//printf("=====================\n");
+	glCallList(chunk_dl);
 	glFlush();
 	SDL_GL_SwapBuffers();
 #ifdef BENCHMARK
