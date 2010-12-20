@@ -14,8 +14,10 @@ int distance = 60;
 
 void draw();
 
-#define MAX_X 4
-#define MAX_Z 4
+#define MAX_X 9
+#define MAX_Z 9
+
+#define LIMIT_MIN_Y 0
 
 chunk_t *ch[MAX_X][MAX_Z];
 GLuint chunk_dl[MAX_X][MAX_Z];
@@ -133,61 +135,59 @@ typedef struct {
 
 int draw_cube(int x, int y, int z, char type, neighbours_t *nghb)
 {
-	if (type != nghb->yminus) {
-		switch(type) {
-		case 1: /* stone */
-			glColor3ub(128, 128, 128);
-			break;
-		case 7: /* bedrock */
-			glColor3ub(56, 56, 56);
-			break;
-		case 3: /* dirt */
-			glColor3ub(139, 69, 19);
-			break;
-		case 2: /* grass */
-			glColor3ub(128, 255, 0);
-			break;
-		case 12: /* sand */
-			glColor3ub(194, 178, 128);
-			break;
-		case 13: /* gravel */
-			glColor3ub(110, 100, 100);
-			break;
-		case 9: /* water */
-			glColor3ub(0, 0, 100);
-			break;
-		case 15: /* iron ore */
-			glColor3ub(164, 164, 164);
-			break;
-		case 14: /* gold ore */
-			glColor3ub(203, 161, 53);
-			break;
-		case 16: /* coal ore */
-			glColor3ub(32, 32, 32);
-			break;
-		case 73: /* redstone ore */
-			glColor3ub(128, 0, 0);
-			break;
-		case 49: /* obsidian */
-			glColor3ub(0, 0, 0);
-			break;
-		case 11: /* lava */
-			glColor3ub(255, 64, 0);
-			break;
-		case 48: /* mossy cobblestone */
-			glColor3ub(0, 64, 0);
-			break;
-		case 4: /* cobblestone */
-			glColor3ub(96, 96, 96);
-			break;
-		case 56: /* diamond */
-			glColor3ub(0, 0, 200);
-			break;
-		default:
-			printf("Unknown color for : %i\n", type);
-			glColor3ub(200, 200, 200);
-			break;
-		}
+	switch(type) {
+	case 1: /* stone */
+		glColor3ub(128, 128, 128);
+		break;
+	case 7: /* bedrock */
+		glColor3ub(56, 56, 56);
+		break;
+	case 3: /* dirt */
+		glColor3ub(139, 69, 19);
+		break;
+	case 2: /* grass */
+		glColor3ub(128, 255, 0);
+		break;
+	case 12: /* sand */
+		glColor3ub(194, 178, 128);
+		break;
+	case 13: /* gravel */
+		glColor3ub(110, 100, 100);
+		break;
+	case 9: /* water */
+		glColor3ub(0, 0, 100);
+		break;
+	case 15: /* iron ore */
+		glColor3ub(164, 164, 164);
+		break;
+	case 14: /* gold ore */
+		glColor3ub(203, 161, 53);
+		break;
+	case 16: /* coal ore */
+		glColor3ub(32, 32, 32);
+		break;
+	case 73: /* redstone ore */
+		glColor3ub(128, 0, 0);
+		break;
+	case 49: /* obsidian */
+		glColor3ub(0, 0, 0);
+		break;
+	case 11: /* lava */
+		glColor3ub(255, 64, 0);
+		break;
+	case 48: /* mossy cobblestone */
+		glColor3ub(0, 64, 0);
+		break;
+	case 4: /* cobblestone */
+		glColor3ub(96, 96, 96);
+		break;
+	case 56: /* diamond */
+		glColor3ub(0, 0, 200);
+		break;
+	default:
+		printf("Unknown color for : %i\n", type);
+		glColor3ub(200, 200, 200);
+		break;
 	}
 	//printf("%i,%i,%i\n", x, y, z);
 
@@ -255,13 +255,13 @@ void build_chunk_display_list(chunk_t *ch)
 			for (y = 0 ; y < 128 ; y++) {
 				char type = ch->blocks[i];
 				nghb.yplus = (i+1 < BPCHUNK) ? ch->blocks[i+1] : 0;
-				nghb.yminus = (i-1 > 0) ? ch->blocks[i-1] : 0;
+				nghb.yminus = (i-1 > LIMIT_MIN_Y) ? ch->blocks[i-1] : 0;
 				nghb.zplus = (i+16 < BPCHUNK) ? ch->blocks[i+16] : 0;
 				nghb.zminus = (i-16 > 0) ? ch->blocks[i-16] : 0;
 				nghb.zplus = (i+(128*16) < BPCHUNK) ? ch->blocks[i+(128*16)] : 0;
 				nghb.zminus = (i-(128*16) > 0) ? ch->blocks[i-(128*16)] : 0;
 				//printf("computed id : %i VS expected : %i\n", y+(z*128)+(x*128*16), i);
-				if (type == 0) {
+				if (type == 0 || y < LIMIT_MIN_Y) {
 					i++;
 					//printf("%i,%i,%i(missed)\n", x, y, z);
 					continue;
