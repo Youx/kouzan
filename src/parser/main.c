@@ -97,8 +97,8 @@ typedef struct {
 
 int draw_cube(int x, int y, int z, char type, neighbours_t *nghb)
 {
-
-	switch(type) {
+	if (type != nghb->yminus) {
+		switch(type) {
 		case 1: /* stone */
 			glColor3ub(128, 128, 128);
 			break;
@@ -136,45 +136,58 @@ int draw_cube(int x, int y, int z, char type, neighbours_t *nghb)
 			printf("Unknown color for : %i\n", type);
 			glColor3ub(200, 200, 200);
 			break;
+		}
 	}
 	//printf("%i,%i,%i\n", x, y, z);
 
 	glBegin(GL_QUADS);
-	glNormal3f(0.0f, 0.0f, 1.0f);					// Normal Pointing Towards Viewer
-	glVertex3f(x, y, z+1.0f);	// Point 1 (Front)
-	glVertex3f(x+1.0f, y, z+1.0f);	// Point 2 (Front)
-	glVertex3f(x+1.0f, y+1.0f, z+1.0f);	// Point 3 (Front)
-	glVertex3f(x, y+1.0f, z+1.0f);	// Point 4 (Front)
+	if (!nghb->xplus) {
+		glNormal3f(0.0f, 0.0f, 1.0f);					// Normal Pointing Towards Viewer
+		glVertex3f(x, y, z+1.0f);	// Point 1 (Front)
+		glVertex3f(x+1.0f, y, z+1.0f);	// Point 2 (Front)
+		glVertex3f(x+1.0f, y+1.0f, z+1.0f);	// Point 3 (Front)
+		glVertex3f(x, y+1.0f, z+1.0f);	// Point 4 (Front)
+	}
 
-	glNormal3f(0.0f, 0.0f, -1.0f);					// Normal Pointing Away From Viewer
-	glVertex3f(x, y, z);	// Point 1 (Back)
-	glVertex3f(x, y+1.0f, z);	// Point 2 (Back)
-	glVertex3f(x+1.0f, y+1.0f, z);	// Point 3 (Back)
-	glVertex3f(x+1.0f, y, z);	// Point 4 (Back)
+	if (!nghb->xminus) {
+		glNormal3f(0.0f, 0.0f, -1.0f);					// Normal Pointing Away From Viewer
+		glVertex3f(x, y, z);	// Point 1 (Back)
+		glVertex3f(x, y+1.0f, z);	// Point 2 (Back)
+		glVertex3f(x+1.0f, y+1.0f, z);	// Point 3 (Back)
+		glVertex3f(x+1.0f, y, z);	// Point 4 (Back)
+	}
 
-	glNormal3f(0.0f, 1.0f, 0.0f);					// Normal Pointing Up
-	glVertex3f(x, y+1.0f, z);	// Point 1 (Top)
-	glVertex3f(x, y+1.0f, z+1.0f);	// Point 2 (Top)
-	glVertex3f(x+1.0f, y+1.0f, z+1.0f);	// Point 3 (Top)
-	glVertex3f(x+1.0f, y+1.0f, z);	// Point 4 (Top)
+	if (!nghb->yplus) {
+		glNormal3f(0.0f, 1.0f, 0.0f);					// Normal Pointing Up
+		glVertex3f(x, y+1.0f, z);	// Point 1 (Top)
+		glVertex3f(x, y+1.0f, z+1.0f);	// Point 2 (Top)
+		glVertex3f(x+1.0f, y+1.0f, z+1.0f);	// Point 3 (Top)
+		glVertex3f(x+1.0f, y+1.0f, z);	// Point 4 (Top)
+	}
 
-	glNormal3f(0.0f, -1.0f, 0.0f);					// Normal Pointing Down
-	glVertex3f(x, y, z);	// Point 1 (Bottom)
-	glVertex3f(x+1.0f, y, z);	// Point 2 (Bottom)
-	glVertex3f(x+1.0f, y, z+1.0f);	// Point 3 (Bottom)
-	glVertex3f(x, y, z+1.0f);	// Point 4 (Bottom)
+	if (!nghb->yminus) {
+		glNormal3f(0.0f, -1.0f, 0.0f);					// Normal Pointing Down
+		glVertex3f(x, y, z);	// Point 1 (Bottom)
+		glVertex3f(x+1.0f, y, z);	// Point 2 (Bottom)
+		glVertex3f(x+1.0f, y, z+1.0f);	// Point 3 (Bottom)
+		glVertex3f(x, y, z+1.0f);	// Point 4 (Bottom)
+	}
 
-	glNormal3f(1.0f, 0.0f, 0.0f);					// Normal Pointing Right
-	glVertex3f(x+1.0f, y, z);	// Point 1 (Right)
-	glVertex3f(x+1.0f, y+1.0f, z);	// Point 2 (Right)
-	glVertex3f(x+1.0f, y+1.0f, z+1.0f);	// Point 3 (Right)
-	glVertex3f(x+1.0f, y, z+1.0f);	// Point 4 (Right)
+	if (!nghb->zplus) {
+		glNormal3f(1.0f, 0.0f, 0.0f);					// Normal Pointing Right
+		glVertex3f(x+1.0f, y, z);	// Point 1 (Right)
+		glVertex3f(x+1.0f, y+1.0f, z);	// Point 2 (Right)
+		glVertex3f(x+1.0f, y+1.0f, z+1.0f);	// Point 3 (Right)
+		glVertex3f(x+1.0f, y, z+1.0f);	// Point 4 (Right)
+	}
 
-	glNormal3f(x, 0.0f, 0.0f);					// Normal Pointing Left
-	glVertex3f(x, y, z);	// Point 1 (Left)
-	glVertex3f(x, y, z+1.0f);	// Point 2 (Left)
-	glVertex3f(x, y+1.0f, z+1.0f);	// Point 3 (Left)
-	glVertex3f(x, y+1.0f, z);	// Point 4 (Left)
+	if (!nghb->zminus) {
+		glNormal3f(x, 0.0f, 0.0f);					// Normal Pointing Left
+		glVertex3f(x, y, z);	// Point 1 (Left)
+		glVertex3f(x, y, z+1.0f);	// Point 2 (Left)
+		glVertex3f(x, y+1.0f, z+1.0f);	// Point 3 (Left)
+		glVertex3f(x, y+1.0f, z);	// Point 4 (Left)
+	}
 
 	glEnd();
 }
