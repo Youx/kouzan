@@ -194,11 +194,13 @@ int draw_cube(int x, int y, int z, char type, neighbours_t *nghb)
 
 void draw()
 {
-	int start_bench, end_bench;
 	long i;
 	int x, y, z;
 
-	/*start_bench = SDL_GetTicks();*/
+#ifdef BENCHMARK
+	int start_bench, end_bench;
+	start_bench = SDL_GetTicks();
+#endif
 
 	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
@@ -237,6 +239,8 @@ void draw()
 
 	glFlush();
 	SDL_GL_SwapBuffers();
-/*	end_bench = SDL_GetTicks();
-	printf("Total time to render : %ims\n", end_bench - start_bench);*/
+#ifdef BENCHMARK
+	end_bench = SDL_GetTicks();
+	printf("Total time to render : %ims\n", end_bench - start_bench);
+#endif
 }

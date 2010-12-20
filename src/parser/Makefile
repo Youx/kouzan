@@ -8,10 +8,13 @@
 CFLAGS=-g -Wall -fPIC
 RM=rm
 
-default: level_data_test chunk_test renderer
+default: level_data_test chunk_test renderer renderer_benchmark
 
 renderer: libnbt.so main.c chunk.c chunk.h
 	gcc -o $@ -L. -lGL -lGLU -lSDL -lnbt -lz chunk.c chunk.h main.c -g
+
+renderer_benchmark: libnbt.so main.c chunk.c chunk.h
+	gcc -o $@ -L. -lGL -lGLU -lSDL -lnbt -lz -DBENCHMARK chunk.c chunk.h main.c -g
 
 level_data_test: libnbt.so level_data.c level_data.h
 	gcc -o $@ -L. -lnbt -lz -DLEVEL_DATA_TEST level_data.c -g
