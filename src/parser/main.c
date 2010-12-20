@@ -86,7 +86,16 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
-int draw_cube(int x, int y, int z, char type)
+typedef struct {
+	char xplus;
+	char xminus;
+	char yplus;
+	char yminus;
+	char zplus;
+	char zminus;
+} neighbours_t;
+
+int draw_cube(int x, int y, int z, char type, neighbours_t *nghb)
 {
 
 	switch(type) {
@@ -188,11 +197,18 @@ void draw()
 	glRotated(angle_y, 0, 1, 0);
 	//glRotated(angle_z, 0, 0, 1);
 	//printf("=====================\n");
+	neighbours_t nghb = {0};
 	i = 0;
 	for (x = 0 ; x < 16 ; x++) {
 		for (z = 0 ; z < 16 ; z++) {
 			for (y = 0 ; y < 128 ; y++) {
 				char type = ch->blocks[i];
+				nghb.yplus = (i+1 < BPCHUNK) ? ch->blocks[i+1] : 0;
+				nghb.yminus = (i-1 > 0) ? ch->blocks[i-1] : 0;
+				nghb.zplus = (i+16 < BPCHUNK) ? ch->blocks[i+16] : 0;
+				nghb.zminus = (i-16 > 0) ? ch->blocks[i-16] : 0;
+				nghb.zplus = (i+(128*16) < BPCHUNK) ? ch->blocks[i+(128*16)] : 0;
+				nghb.zminus = (i-(128*16) > 0) ? ch->blocks[i-(128*16)] : 0;
 				//printf("computed id : %i VS expected : %i\n", y+(z*128)+(x*128*16), i);
 				if (type == 0) {
 					i++;
@@ -200,7 +216,7 @@ void draw()
 					continue;
 				}
 				//printf("type: %i\n", type);
-				draw_cube(x, y, z, type);
+				draw_cube(x, y, z, type, &nghb);
 				i++;
 			}
 		}

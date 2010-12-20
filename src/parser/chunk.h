@@ -7,8 +7,10 @@
 #define HALFID(array, x, y, z) \
 	(array[ ((y+(z*128)+(x*128*16))/2) ] >> (((y+(z*128)+(x*128*16))%2) * 4))
 
+#define BPCHUNK 32768
+
 typedef struct {
-	char blocks[32768];
+	char blocks[BPCHUNK];
 	char data[16384];
 	char sky_light[16384];
 	char block_light[16384];
