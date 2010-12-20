@@ -8,7 +8,10 @@
 CFLAGS=-g -Wall -fPIC
 RM=rm
 
-default: level_data_test chunk_test
+default: level_data_test chunk_test renderer
+
+renderer: libnbt.so main.c chunk.c chunk.h
+	gcc -o $@ -L. -lGL -lGLU -lSDL -lnbt -lz chunk.c chunk.h main.c -g
 
 level_data_test: libnbt.so level_data.c level_data.h
 	gcc -o $@ -L. -lnbt -lz -DLEVEL_DATA_TEST level_data.c -g
@@ -26,6 +29,7 @@ clean:
 	$(RM) -rf *.{o,a,so}
 	$(RM) -rf level_data_test
 	$(RM) -rf chunk_test
+	$(RM) -rf renderer
 
 nbt.o: nbt.h nbt.c
 endianness.o: endianness.h endianness.c
