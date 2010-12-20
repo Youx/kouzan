@@ -5,7 +5,6 @@
 
 #include "chunk.h"
 
-chunk_t *ch;
 
 int angle_x = 0;
 int angle_y = 0;
@@ -13,16 +12,31 @@ int angle_z = 0;
 int distance = 60;
 
 void draw();
-GLuint chunk_dl;
+
+#define MAX_X 4
+#define MAX_Z 4
+
+chunk_t *ch[MAX_X][MAX_Z];
+GLuint chunk_dl[MAX_X][MAX_Z];
 void build_chunk_display_list(chunk_t *ch);
 
 int main(int argc, char *argv[])
 {
 	SDL_Event event;
 	int button = 0;
+	int x, z;
 
 	//ch = chunk_parse("../../save/world/0/6/c.0.6.dat");
-	ch = chunk_parse("../../save/world/0/0/c.0.0.dat");
+	for (x = 0; x < MAX_X ; x++) {
+		for (z = 0; z < MAX_Z ; z++) {
+			char chunk_name[256];
+			snprintf(chunk_name, sizeof(chunk_name), "../../save/world/%i/%i/c.%i.%i.dat", x, z, x, z);
+			printf("loading : %s\n", chunk_name);
+			ch[x][z] = chunk_parse(chunk_name);
+			ch[x][z]->pos.x = x;
+			ch[x][z]->pos.z = z;
+		}
+	}
 
 	SDL_Init(SDL_INIT_VIDEO);
 	atexit(SDL_Quit);
@@ -43,10 +57,14 @@ int main(int argc, char *argv[])
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
 	glLightfv(GL_LIGHT0, GL_POSITION, position);
 	/* put the whole chunk in a render list */
-	chunk_dl = glGenLists (1);
-	glNewList(chunk_dl, GL_COMPILE);
-	build_chunk_display_list(ch);
-	glEndList();
+	for (x = 0; x < MAX_X ; x++) {
+		for (z = 0; z < MAX_Z ; z++) {
+			chunk_dl[x][z] = glGenLists ((x+1)*(z+1)-1);
+			glNewList(chunk_dl[x][z], GL_COMPILE);
+			build_chunk_display_list(ch[x][z]);
+			glEndList();
+		}
+	}
 
 	draw();
 
@@ -223,7 +241,7 @@ void build_chunk_display_list(chunk_t *ch)
 					continue;
 				}
 				//printf("type: %i\n", type);
-				draw_cube(x, y, z, type, &nghb);
+				draw_cube(x+ch->pos.x*16, y, z+ch->pos.z*16, type, &nghb);
 				i++;
 			}
 		}
@@ -233,6 +251,7 @@ void build_chunk_display_list(chunk_t *ch)
 void draw()
 {
 
+	int x, z;
 #ifdef BENCHMARK
 	int start_bench, end_bench;
 	start_bench = SDL_GetTicks();
@@ -248,7 +267,11 @@ void draw()
 	glRotated(angle_y, 0, 1, 0);
 	//glRotated(angle_z, 0, 0, 1);
 	//printf("=====================\n");
-	glCallList(chunk_dl);
+	for (x = 0; x < MAX_X ; x++) {
+		for (z = 0; z < MAX_Z ; z++) {
+			glCallList(chunk_dl[x][z]);
+		}
+	}
 	glFlush();
 	SDL_GL_SwapBuffers();
 #ifdef BENCHMARK

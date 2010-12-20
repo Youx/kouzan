@@ -18,7 +18,7 @@ typedef struct {
 	struct {
 		int x;
 		int z;
-	} position;
+	} pos;
 	char populated : 1;
 } chunk_t;
 
