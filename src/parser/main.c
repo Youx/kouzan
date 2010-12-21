@@ -223,6 +223,7 @@ int write_cube_vertex_array(int x, int y, int z, char type, neighbours_t *nghb,
 	case 11: /* lava */
 		r = 255; g = 64; b = 0;
 		break;
+	case 81:
 	case 48: /* mossy cobblestone */
 		r = 0; g = 64; b = 0;
 		break;
