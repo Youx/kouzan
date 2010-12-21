@@ -20,8 +20,7 @@ void draw();
 #define LIMIT_MIN_Y 0
 
 chunk_t *ch[MAX_X][MAX_Z];
-GLuint chunk_dl[MAX_X][MAX_Z];
-void build_chunk_display_list(chunk_t *ch);
+void build_vertex_arrays(chunk_t *ch);
 int need_redraw = 1;
 
 void *sdl_th(void *data)
@@ -70,11 +69,33 @@ void *sdl_th(void *data)
 	return NULL;
 }
 
+GLfloat vertices[8*3*16*16*128]; /* 786k floats */
+GLfloat normals[8*3*16*16*128]; /* 786k floats */
+GLubyte colors[8*3*16*16*128]; /* 786k floats */
+GLuint indices[6*4*16*16*128]; /* 786k longs */
+long idx_idx;
+
+void print_vertices(GLfloat *vertices)
+{
+	int i;
+	for (i=0 ; i < 16 ; i++) {
+		printf("vert: {%f, %f, %f}\n", vertices[i*3], vertices[i*3+1], vertices[i*3+2]);
+	}
+}
+void print_indices(GLuint *indices)
+{
+	int i;
+	for (i=0 ; i < 16 ; i++) {
+		printf("indices: {%i, %i, %i, %i}\n", indices[i*4], indices[i*4+1], indices[i*4+2],indices[i*4+3]);
+	}
+}
+
 int main(int argc, char *argv[])
 {
-	int x, z;
 
-	//ch = chunk_parse("../../save/world/0/6/c.0.6.dat");
+	ch[0][0] = chunk_parse("../../save/world/0/0/c.0.0.dat");
+	/*
+	int x, z;
 	for (x = 0; x < MAX_X ; x++) {
 		for (z = 0; z < MAX_Z ; z++) {
 			char chunk_name[256];
@@ -84,7 +105,7 @@ int main(int argc, char *argv[])
 			ch[x][z]->pos.x = x;
 			ch[x][z]->pos.z = z;
 		}
-	}
+	}*/
 
 	SDL_Init(SDL_INIT_VIDEO);
 	atexit(SDL_Quit);
@@ -97,22 +118,27 @@ int main(int argc, char *argv[])
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_COLOR_MATERIAL);
 	glEnable(GL_LIGHTING) ;                 // Active la gestion des lumières
-	glEnable(GL_LIGHT0) ;                      // allume la lampe 0 
+	glEnable(GL_LIGHT0) ;                      // allume la lampe 0
 
-	GLfloat ambientLight[] = { 0.2f, 0.2f, 0.2f, 1.0f };
+	/* vertex arrays */
+	glEnableClientState(GL_VERTEX_ARRAY);
+        glEnableClientState(GL_COLOR_ARRAY);
+        //glEnableClientState(GL_NORMAL_ARRAY);
+
+	build_vertex_arrays(ch[0][0]);
+	print_vertices(vertices);
+	print_indices(indices);
+
+        glVertexPointer(3, GL_FLOAT, 3*sizeof(GLfloat), vertices);
+        glColorPointer(3, GL_UNSIGNED_BYTE, 0, colors);
+        //glNormalPointer(GL_FLOAT, 3*sizeof(GLfloat), normals);
+        //glNormalPointer(GL_FLOAT, 0, normals);
+
 	GLfloat diffuseLight[] = { 0.8f, 0.8f, 0.8, 1.0f };
 	GLfloat position[] = { -1.5f, 1.0f, -4.0f, 1.0f };
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
 	glLightfv(GL_LIGHT0, GL_POSITION, position);
-	/* put the whole chunk in a render list */
-	for (x = 0; x < MAX_X ; x++) {
-		for (z = 0; z < MAX_Z ; z++) {
-			chunk_dl[x][z] = glGenLists ((x+1)*(z+1)-1);
-			glNewList(chunk_dl[x][z], GL_COMPILE);
-			build_chunk_display_list(ch[x][z]);
-			glEndList();
-		}
-	}
+
 	pthread_t th;
 	pthread_create(&th, NULL, &sdl_th, NULL);
 
@@ -151,123 +177,155 @@ typedef struct {
 	char zminus;
 } neighbours_t;
 
-int draw_cube(int x, int y, int z, char type, neighbours_t *nghb)
+int write_cube_vertex_array(int x, int y, int z, char type, neighbours_t *nghb,
+		GLfloat *vertices, GLubyte *colors, GLuint *indices, GLfloat *normals,
+		long *vert_idx, long *col_idx, long *idx_idx, long *nml_idx)
 {
+	//int v = *vert_idx;
+	int a, d, c;
+	GLubyte r, g, b;
 	switch(type) {
 	case 1: /* stone */
-		glColor3ub(128, 128, 128);
+		r = 128; g = 128; b = 128;
 		break;
 	case 7: /* bedrock */
-		glColor3ub(56, 56, 56);
+		r = 56; g = 56; b = 56;
 		break;
 	case 3: /* dirt */
-		glColor3ub(139, 69, 19);
+		r = 139; g = 69; b = 19;
 		break;
 	case 2: /* grass */
-		glColor3ub(128, 255, 0);
+		r = 128; g = 255; b = 0;
 		break;
 	case 12: /* sand */
-		glColor3ub(194, 178, 128);
+		r = 194; g = 178; b = 128;
 		break;
 	case 13: /* gravel */
-		glColor3ub(110, 100, 100);
+		r = 110; g = 100; b = 100;
 		break;
 	case 9: /* water */
-		glColor3ub(0, 0, 100);
+		r = 0; g = 0; b = 100;
 		break;
 	case 15: /* iron ore */
-		glColor3ub(164, 164, 164);
+		r = 164; g = 164; b = 164;
 		break;
 	case 14: /* gold ore */
-		glColor3ub(203, 161, 53);
+		r = 203; g = 161; b = 53;
 		break;
 	case 16: /* coal ore */
-		glColor3ub(32, 32, 32);
+		r = 32; g = 32; b = 32;
 		break;
 	case 73: /* redstone ore */
-		glColor3ub(128, 0, 0);
+		r = 128; g = 0; b = 0;
 		break;
 	case 49: /* obsidian */
-		glColor3ub(0, 0, 0);
+		r = 0; g = 0; b = 0;
 		break;
 	case 11: /* lava */
-		glColor3ub(255, 64, 0);
+		r = 255; g = 64; b = 0;
 		break;
 	case 48: /* mossy cobblestone */
-		glColor3ub(0, 64, 0);
+		r = 0; g = 64; b = 0;
 		break;
 	case 4: /* cobblestone */
-		glColor3ub(96, 96, 96);
+		r = 96; g = 96; b = 96;
 		break;
 	case 56: /* diamond */
-		glColor3ub(0, 0, 200);
+		r = 0; g = 0; b = 200;
 		break;
 	default:
 		printf("Unknown color for : %i\n", type);
-		glColor3ub(200, 200, 200);
+		r = 200; g = 200; b = 200;
 		break;
 	}
-	//printf("%i,%i,%i\n", x, y, z);
 
-	glBegin(GL_QUADS);
+	float norm_x;
+	float norm_y;
+	float norm_z;
+
+	for (a = 0 ; a <= 1 ; a++) {
+		norm_x = (a == 0 ? -1.f : 1.f) * 0.577350269;
+		for (d = 0 ; d <= 1 ; d++) {
+			norm_y = (b == 0 ? -1.f : 1.f) * 0.577350269;
+			for (c = 0 ; c <= 1 ; c++) {
+				norm_z = (c == 0 ? -1.f : 1.f) * 0.577350269;
+
+				vertices[(*vert_idx) + (a*12)+(d*6)+(c*3)] = x+a;
+				vertices[(*vert_idx) + (a*12)+(d*6)+(c*3)+1] = y+d;
+				vertices[(*vert_idx) + (a*12)+(d*6)+(c*3)+2] = z+c;
+				colors[(*col_idx) + (a*12)+(d*6)+(c*3)] = r;
+				colors[(*col_idx) + (a*12)+(d*6)+(c*3)+1] = g;
+				colors[(*col_idx) + (a*12)+(d*6)+(c*3)+2] = b;
+				normals[(*nml_idx) + (a*12)+(d*6)+(c*3)] = norm_x;
+				normals[(*nml_idx) + (a*12)+(d*6)+(c*3)+1] = norm_y;
+				normals[(*nml_idx) + (a*12)+(d*6)+(c*3)+2] = norm_z;
+				
+			}	
+		}
+	}
+	long i = *idx_idx;
 	if (!nghb->xplus) {
-		glNormal3f(0.0f, 0.0f, 1.0f);					// Normal Pointing Towards Viewer
-		glVertex3f(x, y, z+1.0f);	// Point 1 (Front)
-		glVertex3f(x+1.0f, y, z+1.0f);	// Point 2 (Front)
-		glVertex3f(x+1.0f, y+1.0f, z+1.0f);	// Point 3 (Front)
-		glVertex3f(x, y+1.0f, z+1.0f);	// Point 4 (Front)
+		//glNormal3f(0.0f, 0.0f, 1.0f);
+		indices[i++] = ((*vert_idx)/3)+1;
+		indices[i++] = ((*vert_idx)/3)+5;
+		indices[i++] = ((*vert_idx)/3)+7;
+		indices[i++] = ((*vert_idx)/3)+3;
 	}
-
 	if (!nghb->xminus) {
-		glNormal3f(0.0f, 0.0f, -1.0f);					// Normal Pointing Away From Viewer
-		glVertex3f(x, y, z);	// Point 1 (Back)
-		glVertex3f(x, y+1.0f, z);	// Point 2 (Back)
-		glVertex3f(x+1.0f, y+1.0f, z);	// Point 3 (Back)
-		glVertex3f(x+1.0f, y, z);	// Point 4 (Back)
+		//glNormal3f(0.0f, 0.0f, -1.0f);
+		indices[i++] = ((*vert_idx)/3)+0;
+		indices[i++] = ((*vert_idx)/3)+2;
+		indices[i++] = ((*vert_idx)/3)+6;
+		indices[i++] = ((*vert_idx)/3)+4;
 	}
-
 	if (!nghb->yplus) {
-		glNormal3f(0.0f, 1.0f, 0.0f);					// Normal Pointing Up
-		glVertex3f(x, y+1.0f, z);	// Point 1 (Top)
-		glVertex3f(x, y+1.0f, z+1.0f);	// Point 2 (Top)
-		glVertex3f(x+1.0f, y+1.0f, z+1.0f);	// Point 3 (Top)
-		glVertex3f(x+1.0f, y+1.0f, z);	// Point 4 (Top)
+		//glNormal3f(0.0f, 1.0f, 0.0f);
+		indices[i++] = ((*vert_idx)/3)+2;
+		indices[i++] = ((*vert_idx)/3)+3;
+		indices[i++] = ((*vert_idx)/3)+7;
+		indices[i++] = ((*vert_idx)/3)+6;
 	}
-
 	if (!nghb->yminus) {
-		glNormal3f(0.0f, -1.0f, 0.0f);					// Normal Pointing Down
-		glVertex3f(x, y, z);	// Point 1 (Bottom)
-		glVertex3f(x+1.0f, y, z);	// Point 2 (Bottom)
-		glVertex3f(x+1.0f, y, z+1.0f);	// Point 3 (Bottom)
-		glVertex3f(x, y, z+1.0f);	// Point 4 (Bottom)
+		//glNormal3f(0.0f, -1.0f, 0.0f);
+		indices[i++] = ((*vert_idx)/3)+0;
+		indices[i++] = ((*vert_idx)/3)+4;
+		indices[i++] = ((*vert_idx)/3)+5;
+		indices[i++] = ((*vert_idx)/3)+1;
 	}
-
 	if (!nghb->zplus) {
-		glNormal3f(1.0f, 0.0f, 0.0f);					// Normal Pointing Right
-		glVertex3f(x+1.0f, y, z);	// Point 1 (Right)
-		glVertex3f(x+1.0f, y+1.0f, z);	// Point 2 (Right)
-		glVertex3f(x+1.0f, y+1.0f, z+1.0f);	// Point 3 (Right)
-		glVertex3f(x+1.0f, y, z+1.0f);	// Point 4 (Right)
+		//glNormal3f(1.0f, 0.0f, 0.0f);
+		indices[i++] = ((*vert_idx)/3)+4;
+		indices[i++] = ((*vert_idx)/3)+6;
+		indices[i++] = ((*vert_idx)/3)+7;
+		indices[i++] = ((*vert_idx)/3)+5;
 	}
-
 	if (!nghb->zminus) {
-		glNormal3f(x, 0.0f, 0.0f);					// Normal Pointing Left
-		glVertex3f(x, y, z);	// Point 1 (Left)
-		glVertex3f(x, y, z+1.0f);	// Point 2 (Left)
-		glVertex3f(x, y+1.0f, z+1.0f);	// Point 3 (Left)
-		glVertex3f(x, y+1.0f, z);	// Point 4 (Left)
+		//glNormal3f(x, 0.0f, 0.0f);
+		indices[i++] = ((*vert_idx)/3)+0;
+		indices[i++] = ((*vert_idx)/3)+1;
+		indices[i++] = ((*vert_idx)/3)+3;
+		indices[i++] = ((*vert_idx)/3)+2;
 	}
 
-	glEnd();
+
+
+	*idx_idx = i;	/* */
+	*vert_idx += 24;	/* 8 vertices per cube * 3 components (x,y,z) */
+	*col_idx += 24;	/* one color per vertex * 3 components (r,g,b) */
+	*nml_idx += 24;
+	return 0;
 }
 
-void build_chunk_display_list(chunk_t *ch)
+void build_vertex_arrays(chunk_t *ch)
 {
 	long i;
 	int x, y, z;
 	neighbours_t nghb = {0};
-
 	i = 0;
+
+	long col_idx = 0, vert_idx = 0, nml_idx = 0;
+	idx_idx = 0;
+
 	for (x = 0 ; x < 16 ; x++) {
 		for (z = 0 ; z < 16 ; z++) {
 			for (y = 0 ; y < 128 ; y++) {
@@ -285,7 +343,9 @@ void build_chunk_display_list(chunk_t *ch)
 					continue;
 				}
 				//printf("type: %i\n", type);
-				draw_cube(x+ch->pos.x*16, y, z+ch->pos.z*16, type, &nghb);
+				write_cube_vertex_array(x+ch->pos.x*16, y, z+ch->pos.z*16, type, &nghb,
+							vertices, colors, indices, normals,
+							&vert_idx, &col_idx, &idx_idx, &nml_idx);
 				i++;
 			}
 		}
@@ -295,7 +355,7 @@ void build_chunk_display_list(chunk_t *ch)
 void draw()
 {
 
-	int x, z;
+	//int x, z;
 
 	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
@@ -303,15 +363,19 @@ void draw()
 	glLoadIdentity( );
 	//gluLookAt(-1,64+distance,-1,8,64,8,0,1,0);
 	gluLookAt(0,32+distance,0,8,32,8,0,1,0);
+	//gluLookAt(-5, -5, -5, 0, 0, 0,0,1,0);
 	glRotated(angle_x, 1, 0, 0);
 	glRotated(angle_y, 0, 1, 0);
 	//glRotated(angle_z, 0, 0, 1);
 	//printf("=====================\n");
-	for (x = 0; x < MAX_X ; x++) {
-		for (z = 0; z < MAX_Z ; z++) {
-			glCallList(chunk_dl[x][z]);
-		}
-	}
+	//for (x = 0; x < MAX_X ; x++) {
+	//	for (z = 0; z < MAX_Z ; z++) {
+	//		glCallList(chunk_dl[x][z]);
+	//	}
+	//}
+	//printf("%li elements to draw\n", idx_idx);
+	glDrawElements(GL_QUADS, idx_idx, GL_UNSIGNED_INT, indices);
+
 	glFlush();
 	SDL_GL_SwapBuffers();
 }
