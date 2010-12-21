@@ -20,7 +20,7 @@ void draw();
 #define LIMIT_MIN_Y 0
 
 chunk_t *ch[MAX_X][MAX_Z];
-void build_vertex_arrays(chunk_t *ch);
+void build_vertex_arrays(chunk_t *ch, GLfloat *vertices, GLubyte *colors, GLuint *indices, GLfloat *normals);
 int need_redraw = 1;
 
 void *sdl_th(void *data)
@@ -69,10 +69,10 @@ void *sdl_th(void *data)
 	return NULL;
 }
 
-GLfloat vertices[8*3*16*16*128]; /* 786k floats */
-GLfloat normals[8*3*16*16*128]; /* 786k floats */
-GLubyte colors[8*3*16*16*128]; /* 786k floats */
-GLuint indices[6*4*16*16*128]; /* 786k longs */
+GLfloat vertices[MAX_X][MAX_Z][8*3*16*16*128]; /* 786k floats */
+GLfloat normals[MAX_X][MAX_Z][8*3*16*16*128]; /* 786k floats */
+GLubyte colors[MAX_X][MAX_Z][8*3*16*16*128]; /* 786k floats */
+GLuint indices[MAX_X][MAX_Z][6*4*16*16*128]; /* 786k longs */
 long idx_idx;
 
 void print_vertices(GLfloat *vertices)
@@ -93,8 +93,6 @@ void print_indices(GLuint *indices)
 int main(int argc, char *argv[])
 {
 
-	ch[0][0] = chunk_parse("../../save/world/0/0/c.0.0.dat");
-	/*
 	int x, z;
 	for (x = 0; x < MAX_X ; x++) {
 		for (z = 0; z < MAX_Z ; z++) {
@@ -105,7 +103,7 @@ int main(int argc, char *argv[])
 			ch[x][z]->pos.x = x;
 			ch[x][z]->pos.z = z;
 		}
-	}*/
+	}
 
 	SDL_Init(SDL_INIT_VIDEO);
 	atexit(SDL_Quit);
@@ -125,15 +123,15 @@ int main(int argc, char *argv[])
 	glEnableClientState(GL_VERTEX_ARRAY);
         glEnableClientState(GL_COLOR_ARRAY);
         //glEnableClientState(GL_NORMAL_ARRAY);
-
-	build_vertex_arrays(ch[0][0]);
-	print_vertices(vertices);
-	print_indices(indices);
-
-        glVertexPointer(3, GL_FLOAT, 3*sizeof(GLfloat), vertices);
-        glColorPointer(3, GL_UNSIGNED_BYTE, 0, colors);
-        //glNormalPointer(GL_FLOAT, 3*sizeof(GLfloat), normals);
-        //glNormalPointer(GL_FLOAT, 0, normals);
+	for (x = 0 ; x < MAX_X ; x++) {
+		for (z = 0 ; z < MAX_Z ; z++) {
+			build_vertex_arrays(ch[x][z],vertices[x][z],
+					colors[x][z], indices[x][z],
+					normals[x][z]);
+		}
+	}
+	//print_vertices(vertices);
+	//print_indices(indices);
 
 	GLfloat diffuseLight[] = { 0.8f, 0.8f, 0.8, 1.0f };
 	GLfloat position[] = { -1.5f, 1.0f, -4.0f, 1.0f };
@@ -317,7 +315,7 @@ int write_cube_vertex_array(int x, int y, int z, char type, neighbours_t *nghb,
 	return 0;
 }
 
-void build_vertex_arrays(chunk_t *ch)
+void build_vertex_arrays(chunk_t *ch, GLfloat *vertices, GLubyte *colors, GLuint *indices, GLfloat *normals)
 {
 	long i;
 	int x, y, z;
@@ -344,7 +342,7 @@ void build_vertex_arrays(chunk_t *ch)
 					continue;
 				}
 				//printf("type: %i\n", type);
-				write_cube_vertex_array(x+ch->pos.x*16, y, z+ch->pos.z*16, type, &nghb,
+				write_cube_vertex_array(x+ch->pos.x*15, y, z+ch->pos.z*15, type, &nghb,
 							vertices, colors, indices, normals,
 							&vert_idx, &col_idx, &idx_idx, &nml_idx);
 				i++;
@@ -356,9 +354,10 @@ void build_vertex_arrays(chunk_t *ch)
 void draw()
 {
 
-	//int x, z;
+	int x, z;
 
 	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+
 
 	glMatrixMode( GL_MODELVIEW );
 	glLoadIdentity( );
@@ -369,13 +368,14 @@ void draw()
 	glRotated(angle_y, 0, 1, 0);
 	//glRotated(angle_z, 0, 0, 1);
 	//printf("=====================\n");
-	//for (x = 0; x < MAX_X ; x++) {
-	//	for (z = 0; z < MAX_Z ; z++) {
-	//		glCallList(chunk_dl[x][z]);
-	//	}
-	//}
+	for (x = 0; x < MAX_X ; x++) {
+		for (z = 0; z < MAX_Z ; z++) {
+			glVertexPointer(3, GL_FLOAT, 3*sizeof(GLfloat), vertices[x][z]);
+			glColorPointer(3, GL_UNSIGNED_BYTE, 0, colors[x][z]);
+			glDrawElements(GL_QUADS, idx_idx, GL_UNSIGNED_INT, indices[x][z]);
+		}
+	}
 	//printf("%li elements to draw\n", idx_idx);
-	glDrawElements(GL_QUADS, idx_idx, GL_UNSIGNED_INT, indices);
 
 	glFlush();
 	SDL_GL_SwapBuffers();
