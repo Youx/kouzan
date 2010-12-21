@@ -11,22 +11,22 @@ RM=rm
 default: level_data_test chunk_test renderer renderer_benchmark
 
 renderer: libnbt.so main.c chunk.c chunk.h
-	gcc -o $@ -L. -lGL -lGLU -lSDL -lnbt -lz chunk.c chunk.h main.c -g
+	$(CC) $(CFLAGS) -o $@ -L. -lGL -lGLU -lSDL -lnbt -lz chunk.c main.c
 
 renderer_benchmark: libnbt.so main.c chunk.c chunk.h
-	gcc -o $@ -L. -lGL -lGLU -lSDL -lnbt -lz -DBENCHMARK chunk.c chunk.h main.c -g
+	$(CC) $(CFLAGS) -o $@ -L. -lGL -lGLU -lSDL -lnbt -lz -DBENCHMARK chunk.c main.c
 
 level_data_test: libnbt.so level_data.c level_data.h
-	gcc -o $@ -L. -lnbt -lz -DLEVEL_DATA_TEST level_data.c -g
+	$(CC) $(CFLAGS) -o $@ -L. -lnbt -lz -DLEVEL_DATA_TEST level_data.c
 
 chunk_test: libnbt.so chunk.c chunk.h
-	gcc -o $@ -L. -lnbt -lz -DCHUNK_TEST chunk.c -g
+	$(CC) $(CFLAGS) -o $@ -L. -lnbt -lz -DCHUNK_TEST chunk.c
 
 #main: libnbt.so level_data.o
-#	gcc -o main -L. -lnbt -lz level_data.o -g
+#	$(CC) -o main -L. -lnbt -lz level_data.o -g
 
 libnbt.so: nbt.o endianness.o
-	gcc -fPIC -lz -shared -o libnbt.so nbt.o endianness.o
+	$(CC) $(CFLAGS) -fPIC -lz -shared -o libnbt.so nbt.o endianness.o
 
 clean:
 	$(RM) -rf *.{o,a,so}
