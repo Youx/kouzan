@@ -67,6 +67,7 @@ void *sdl_th(void *data)
 	//	draw();
 
 	}
+	return NULL;
 }
 
 int main(int argc, char *argv[])

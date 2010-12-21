@@ -74,6 +74,7 @@ int main()
 	level_data_t *lvl;
 	lvl = level_data_parse("../../save/world/level.dat");
 	level_data_print(lvl);
+	return 0;
 }
 
 #endif

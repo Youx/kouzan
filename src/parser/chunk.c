@@ -30,7 +30,7 @@ chunk_t *chunk_parse(char *f)
 	blocks = nbt_find_tag_by_name("Blocks", level);
 	ar = blocks->value;
 	memcpy(ch->blocks, ar->content, MIN(ar->length, 32768));
-
+	return ch;
 }
 
 void chunk_print(chunk_t *ch)
@@ -45,6 +45,7 @@ int main()
 
 	ch = chunk_parse("../../save/world/0/6/c.0.6.dat");
 	chunk_print(ch);
+	return 0;
 }
 
 #endif
