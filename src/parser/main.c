@@ -264,14 +264,14 @@ int write_cube_vertex_array(int x, int y, int z, char type, neighbours_t *nghb,
 		}
 	}
 	long i = *idx_idx;
-	if (!nghb->xplus) {
+	if (!nghb->zplus) {
 		//glNormal3f(0.0f, 0.0f, 1.0f);
 		indices[i++] = ((*vert_idx)/3)+1;
 		indices[i++] = ((*vert_idx)/3)+5;
 		indices[i++] = ((*vert_idx)/3)+7;
 		indices[i++] = ((*vert_idx)/3)+3;
 	}
-	if (!nghb->xminus) {
+	if (!nghb->zminus) {
 		//glNormal3f(0.0f, 0.0f, -1.0f);
 		indices[i++] = ((*vert_idx)/3)+0;
 		indices[i++] = ((*vert_idx)/3)+2;
@@ -292,14 +292,14 @@ int write_cube_vertex_array(int x, int y, int z, char type, neighbours_t *nghb,
 		indices[i++] = ((*vert_idx)/3)+5;
 		indices[i++] = ((*vert_idx)/3)+1;
 	}
-	if (!nghb->zplus) {
+	if (!nghb->xplus) {
 		//glNormal3f(1.0f, 0.0f, 0.0f);
 		indices[i++] = ((*vert_idx)/3)+4;
 		indices[i++] = ((*vert_idx)/3)+6;
 		indices[i++] = ((*vert_idx)/3)+7;
 		indices[i++] = ((*vert_idx)/3)+5;
 	}
-	if (!nghb->zminus) {
+	if (!nghb->xminus) {
 		//glNormal3f(x, 0.0f, 0.0f);
 		indices[i++] = ((*vert_idx)/3)+0;
 		indices[i++] = ((*vert_idx)/3)+1;
@@ -330,12 +330,12 @@ void build_vertex_arrays(chunk_t *ch)
 		for (z = 0 ; z < 16 ; z++) {
 			for (y = 0 ; y < 128 ; y++) {
 				char type = ch->blocks[i];
-				nghb.yplus = (i+1 < BPCHUNK) ? ch->blocks[i+1] : 0;
-				nghb.yminus = (i-1 > LIMIT_MIN_Y) ? ch->blocks[i-1] : 0;
-				nghb.zplus = (i+16 < BPCHUNK) ? ch->blocks[i+16] : 0;
-				nghb.zminus = (i-16 > 0) ? ch->blocks[i-16] : 0;
-				nghb.zplus = (i+(128*16) < BPCHUNK) ? ch->blocks[i+(128*16)] : 0;
-				nghb.zminus = (i-(128*16) > 0) ? ch->blocks[i-(128*16)] : 0;
+				nghb.yplus = (y+1 < 127) ? ch->blocks[i+1] : 0;
+				nghb.yminus = (y-1 > 0) ? ch->blocks[i-1] : 0;
+				nghb.zplus = (z+1 < 15) ? ch->blocks[i+128] : 0;
+				nghb.zminus = (z-1 > 0) ? ch->blocks[i-128] : 0;
+				nghb.xplus = (x+1 < 15) ? ch->blocks[i+(128*16)] : 0;
+				nghb.xminus = (x-1 > 0) ? ch->blocks[i-(128*16)] : 0;
 				//printf("computed id : %i VS expected : %i\n", y+(z*128)+(x*128*16), i);
 				if (type == 0 || y < LIMIT_MIN_Y) {
 					i++;
