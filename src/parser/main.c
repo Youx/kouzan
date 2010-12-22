@@ -1,6 +1,6 @@
-#include <SDL/SDL.h>
 #include <GL/gl.h>
 #include <GL/glu.h>
+#include <GL/glut.h>
 #include <stdlib.h>
 #include <pthread.h>
 
@@ -14,66 +14,61 @@ int distance = 60;
 
 void draw();
 
-#define MAX_X 9
-#define MAX_Z 9
+#define MAX_X 8
+#define MAX_Z 8
 
-#define LIMIT_MIN_Y 0
 
+int limit_min_y = 32;
 chunk_t *ch[MAX_X][MAX_Z];
 void build_vertex_arrays(chunk_t *ch, GLfloat *vertices, GLubyte *colors, GLuint *indices, GLfloat *normals);
 int need_redraw = 1;
 
-void *sdl_th(void *data)
-{
-	SDL_Event event;
-	int button = 0;
-	for (;;)
-	{
-		SDL_WaitEvent(&event);
+int count_redraws = 0;
 
-		switch(event.type)
-		{
-			case SDL_MOUSEBUTTONDOWN:
-				//printf("button %i\n", event.button.button);
-				switch (event.button.button) {
-					case 1:
-						button = 1;
-						break;
-					case 4: /* scroll up */
-						distance -=1;
-						need_redraw = 1;
-						break;
-					case 5: /* scroll down */
-						distance +=1;
-						need_redraw = 1;
-						break;
-				}
-				break;
-			case SDL_MOUSEBUTTONUP:
-				button = 0;
-				break;
-			case SDL_MOUSEMOTION:
-				if (button) {
-					angle_x = (angle_x + event.motion.xrel)%360;
-					angle_y = (angle_y + event.motion.yrel)%360;
-					need_redraw = 1;
-				}
-				break;
-			case SDL_QUIT:
-				exit(0);
-				break;
-		}
-	//	draw();
-
-	}
-	return NULL;
-}
-
+int btn_down = 0;
+int old_x = 0, old_y = 0;
 GLfloat vertices[MAX_X][MAX_Z][8*3*16*16*128]; /* 786k floats */
 GLfloat normals[MAX_X][MAX_Z][8*3*16*16*128]; /* 786k floats */
 GLubyte colors[MAX_X][MAX_Z][8*3*16*16*128]; /* 786k floats */
 GLuint indices[MAX_X][MAX_Z][6*4*16*16*128]; /* 786k longs */
 long idx_idx;
+
+
+void mouse(int btn, int state, int x, int y)
+{
+	old_x = x;
+	old_y = y;
+	switch(btn) {
+	case GLUT_LEFT_BUTTON:
+		if (state == GLUT_DOWN) {
+			btn_down = 1;
+		} else {
+			btn_down = 0;
+		}
+		break;
+	case 3:
+		distance -=1;
+		glutPostRedisplay();
+		break;
+	case 4:
+		distance +=1;
+		glutPostRedisplay();
+		break;
+	}
+}
+
+void motion(int x, int y)
+{
+	
+	if (btn_down) {
+		angle_x = (angle_x + (x - old_x))%360;
+		angle_y = (angle_y + (y - old_y))%360;
+		glutPostRedisplay();
+	}
+	old_x = x;
+	old_y = y;
+	printf("motion : %i,%i\n", x, y);
+}
 
 void print_vertices(GLfloat *vertices)
 {
@@ -104,11 +99,14 @@ int main(int argc, char *argv[])
 			ch[x][z]->pos.z = z;
 		}
 	}
-
-	SDL_Init(SDL_INIT_VIDEO);
-	atexit(SDL_Quit);
-	SDL_WM_SetCaption("SDL GL Application", NULL);
-	SDL_SetVideoMode(640, 480, 32, SDL_OPENGL);
+	glutInit(&argc, argv);
+	glutInitWindowSize(640, 480);
+	glutInitDisplayMode(GLUT_RGBA|GLUT_DEPTH|GLUT_DOUBLE);
+	glutCreateWindow("GLUT Application");
+	
+	glutDisplayFunc(&draw);
+	glutMouseFunc(&mouse);
+	glutMotionFunc(&motion);
 
 	glMatrixMode( GL_PROJECTION );
 	glLoadIdentity();
@@ -138,31 +136,7 @@ int main(int argc, char *argv[])
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
 	glLightfv(GL_LIGHT0, GL_POSITION, position);
 
-	pthread_t th;
-	pthread_create(&th, NULL, &sdl_th, NULL);
-
-#ifdef BENCHMARK
-	int start_bench, end_bench;
-	int frames = 0;
-	start_bench = SDL_GetTicks();
-	while (1) {
-		end_bench = SDL_GetTicks();
-		if (end_bench - start_bench > 1000) {
-			printf("%f fps\n", frames * 1000.f / (double)(end_bench - start_bench));
-			start_bench = end_bench;
-			frames = 0;
-		}
-		draw();
-		frames++;
-	}
-#else
-	while (1) {
-		if (need_redraw) {
-			draw();
-			need_redraw = 0;
-		}
-	}
-#endif
+	glutMainLoop();
 
 	return 0;
 }
@@ -331,13 +305,13 @@ void build_vertex_arrays(chunk_t *ch, GLfloat *vertices, GLubyte *colors, GLuint
 			for (y = 0 ; y < 128 ; y++) {
 				char type = ch->blocks[i];
 				nghb.yplus = (y+1 < 127) ? ch->blocks[i+1] : 0;
-				nghb.yminus = (y-1 > 0) ? ch->blocks[i-1] : 0;
+				nghb.yminus = (y-1 > limit_min_y) ? ch->blocks[i-1] : 0;
 				nghb.zplus = (z+1 < 15) ? ch->blocks[i+128] : 0;
 				nghb.zminus = (z-1 > 0) ? ch->blocks[i-128] : 0;
 				nghb.xplus = (x+1 < 15) ? ch->blocks[i+(128*16)] : 0;
 				nghb.xminus = (x-1 > 0) ? ch->blocks[i-(128*16)] : 0;
 				//printf("computed id : %i VS expected : %i\n", y+(z*128)+(x*128*16), i);
-				if (type == 0 || y < LIMIT_MIN_Y) {
+				if (type == 0 || y < limit_min_y) {
 					i++;
 					//printf("%i,%i,%i(missed)\n", x, y, z);
 					continue;
@@ -379,5 +353,5 @@ void draw()
 	//printf("%li elements to draw\n", idx_idx);
 
 	glFlush();
-	SDL_GL_SwapBuffers();
+	glutSwapBuffers();
 }
