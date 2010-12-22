@@ -33,6 +33,14 @@ GLubyte colors[MAX_X][MAX_Z][8*3*16*16*128]; /* 786k floats */
 GLuint indices[MAX_X][MAX_Z][6*4*16*16*128]; /* 786k longs */
 long idx_idx;
 
+void benchmark(int value)
+{
+	printf("%i fps\n", count_redraws);
+	count_redraws = 0;
+	/* Do timer processing */ /* maybe glutPostRedisplay(), if necessary */
+	/* call back again after elapsedUSecs have passed */
+	glutTimerFunc (1000, &benchmark, 0);
+}
 
 void mouse(int btn, int state, int x, int y)
 {
@@ -67,7 +75,7 @@ void motion(int x, int y)
 	}
 	old_x = x;
 	old_y = y;
-	printf("motion : %i,%i\n", x, y);
+	//printf("motion : %i,%i\n", x, y);
 }
 
 void print_vertices(GLfloat *vertices)
@@ -136,6 +144,9 @@ int main(int argc, char *argv[])
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
 	glLightfv(GL_LIGHT0, GL_POSITION, position);
 
+#ifdef BENCHMARK
+	glutTimerFunc (1000, &benchmark, 0);
+#endif
 	glutMainLoop();
 
 	return 0;
@@ -354,4 +365,8 @@ void draw()
 
 	glFlush();
 	glutSwapBuffers();
+	count_redraws++;
+#ifdef BENCHMARK
+	glutPostRedisplay();
+#endif
 }
