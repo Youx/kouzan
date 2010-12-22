@@ -124,11 +124,13 @@ int main(int argc, char *argv[])
 	glEnable(GL_LIGHTING) ;                 // Active la gestion des lumières
 	glEnable(GL_LIGHT0) ;                      // allume la lampe 0
 	glEnable(GL_CULL_FACE);
+	glEnable(GL_NORMALIZE);
+	glShadeModel(GL_FLAT);
 
 	/* vertex arrays */
 	glEnableClientState(GL_VERTEX_ARRAY);
         glEnableClientState(GL_COLOR_ARRAY);
-        //glEnableClientState(GL_NORMAL_ARRAY);
+        glEnableClientState(GL_NORMAL_ARRAY);
 	for (x = 0 ; x < MAX_X ; x++) {
 		for (z = 0 ; z < MAX_Z ; z++) {
 			build_vertex_arrays(ch[x][z],vertices[x][z],
@@ -229,22 +231,17 @@ int write_cube_vertex_array(int x, int y, int z, char type, neighbours_t *nghb,
 	float norm_z;
 
 	for (a = 0 ; a <= 1 ; a++) {
-		norm_x = (a == 0 ? -1.f : 1.f) * 0.577350269;
 		for (d = 0 ; d <= 1 ; d++) {
-			norm_y = (b == 0 ? -1.f : 1.f) * 0.577350269;
 			for (c = 0 ; c <= 1 ; c++) {
-				norm_z = (c == 0 ? -1.f : 1.f) * 0.577350269;
-
 				vertices[(*vert_idx) + (a*12)+(d*6)+(c*3)] = x+a;
 				vertices[(*vert_idx) + (a*12)+(d*6)+(c*3)+1] = y+d;
 				vertices[(*vert_idx) + (a*12)+(d*6)+(c*3)+2] = z+c;
 				colors[(*col_idx) + (a*12)+(d*6)+(c*3)] = r;
 				colors[(*col_idx) + (a*12)+(d*6)+(c*3)+1] = g;
 				colors[(*col_idx) + (a*12)+(d*6)+(c*3)+2] = b;
-				normals[(*nml_idx) + (a*12)+(d*6)+(c*3)] = norm_x;
-				normals[(*nml_idx) + (a*12)+(d*6)+(c*3)+1] = norm_y;
-				normals[(*nml_idx) + (a*12)+(d*6)+(c*3)+2] = norm_z;
-				
+				normals[(*nml_idx) + (a*12)+(d*6)+(c*3)] = (a == 0 ? -1 : 1);
+				normals[(*nml_idx) + (a*12)+(d*6)+(c*3)+1] = (d == 0 ? -1 : 1);
+				normals[(*nml_idx) + (a*12)+(d*6)+(c*3)+2] = (c == 0 ? -1 : 1);
 			}	
 		}
 	}
@@ -358,6 +355,7 @@ void draw()
 		for (z = 0; z < MAX_Z ; z++) {
 			glVertexPointer(3, GL_FLOAT, 3*sizeof(GLfloat), vertices[x][z]);
 			glColorPointer(3, GL_UNSIGNED_BYTE, 0, colors[x][z]);
+			glNormalPointer(GL_FLOAT, 0, normals[x][z]);
 			glDrawElements(GL_QUADS, idx_idx, GL_UNSIGNED_INT, indices[x][z]);
 		}
 	}
