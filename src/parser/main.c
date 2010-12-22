@@ -35,11 +35,11 @@ long idx_idx;
 
 void benchmark(int value)
 {
-	printf("%i fps\n", count_redraws);
+	printf("%f fps\n", count_redraws/10.f);
 	count_redraws = 0;
 	/* Do timer processing */ /* maybe glutPostRedisplay(), if necessary */
 	/* call back again after elapsedUSecs have passed */
-	glutTimerFunc (1000, &benchmark, 0);
+	glutTimerFunc (10000, &benchmark, 0);
 }
 
 void mouse(int btn, int state, int x, int y)
@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
 	glLightfv(GL_LIGHT0, GL_POSITION, position);
 
 #ifdef BENCHMARK
-	glutTimerFunc (1000, &benchmark, 0);
+	glutTimerFunc (10000, &benchmark, 0);
 #endif
 	glutMainLoop();
 
