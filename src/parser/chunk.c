@@ -30,6 +30,7 @@ chunk_t *chunk_parse(char *f)
 	blocks = nbt_find_tag_by_name("Blocks", level);
 	ar = blocks->value;
 	memcpy(ch->blocks, ar->content, MIN(ar->length, 32768));
+	printf("Read %i bytes, expected %i\n", ar->length, 32768);
 	return ch;
 }
 

@@ -2,6 +2,7 @@
 #include <GL/glu.h>
 #include <GL/glut.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <pthread.h>
 
 #include "chunk.h"
@@ -18,7 +19,7 @@ void draw();
 #define MAX_Z 8
 
 
-int limit_min_y = 32;
+int limit_min_y = 0;
 chunk_t *ch[MAX_X][MAX_Z];
 void build_vertex_arrays(chunk_t *ch, GLfloat *vertices, GLubyte *colors, GLuint *indices, GLfloat *normals);
 int need_redraw = 1;
@@ -210,7 +211,7 @@ int write_cube_vertex_array(int x, int y, int z, char type, neighbours_t *nghb,
 	case 11: /* lava */
 		r = 255; g = 64; b = 0;
 		break;
-	case 81:
+	case 81: /* cacti */
 	case 48: /* mossy cobblestone */
 		r = 0; g = 64; b = 0;
 		break;
@@ -225,10 +226,6 @@ int write_cube_vertex_array(int x, int y, int z, char type, neighbours_t *nghb,
 		r = 200; g = 200; b = 200;
 		break;
 	}
-
-	float norm_x;
-	float norm_y;
-	float norm_z;
 
 	for (a = 0 ; a <= 1 ; a++) {
 		for (d = 0 ; d <= 1 ; d++) {
@@ -319,7 +316,7 @@ void build_vertex_arrays(chunk_t *ch, GLfloat *vertices, GLubyte *colors, GLuint
 				nghb.xplus = (x+1 < 15) ? ch->blocks[i+(128*16)] : 0;
 				nghb.xminus = (x-1 > 0) ? ch->blocks[i-(128*16)] : 0;
 				//printf("computed id : %i VS expected : %i\n", y+(z*128)+(x*128*16), i);
-				if (type == 0 || y < limit_min_y) {
+				if (type == 0) {
 					i++;
 					//printf("%i,%i,%i(missed)\n", x, y, z);
 					continue;
