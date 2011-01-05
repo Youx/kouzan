@@ -17,6 +17,7 @@ chunk_t *chunk_parse(char *f)
 	nbt_byte_array *ar;
 
 	nbt_tag *blocks;
+	nbt_tag *sky_light;
 
 	if (nbt_init(&nbt) != NBT_OK) {
 		fprintf(stderr, "Error initializing nbt_file\n");
@@ -27,10 +28,15 @@ chunk_t *chunk_parse(char *f)
 		return NULL;
 	}
 	level = nbt_find_tag_by_name("Level", nbt->root);
+	/* block types */
 	blocks = nbt_find_tag_by_name("Blocks", level);
 	ar = blocks->value;
 	memcpy(ch->blocks, ar->content, MIN(ar->length, 32768));
 	printf("Read %i bytes, expected %i\n", ar->length, 32768);
+	/* sky light */
+	sky_light = nbt_find_tag_by_name("SkyLight", level);
+	ar = sky_light->value;
+	memcpy(ch->sky_light, ar->content, MIN(ar->length, 16384));
 	return ch;
 }
 

@@ -106,7 +106,7 @@ GLfloat blk_colors[255*3] =
 
 int limit_min_y = 0;
 chunk_t *ch[MAX_X][MAX_Z];
-void build_vertex_arrays(chunk_t *ch, GLfloat *vertices, GLint *attribs, GLuint *indices);
+void build_vertex_arrays(chunk_t *ch, GLfloat *vertices, GLint *attribs, GLubyte *light_attr, GLuint *indices);
 int need_redraw = 1;
 
 int count_redraws = 0;
@@ -115,6 +115,7 @@ int btn_down = 0;
 int old_x = 0, old_y = 0;
 GLfloat vertices[MAX_X][MAX_Z][8*3*16*16*128]; /* 786k floats */
 GLint attribs[MAX_X][MAX_Z][8*16*16*128]; /* 786k floats */
+GLubyte light_attr[MAX_X][MAX_Z][8*16*16*128]; /* 786k floats */
 GLuint indices[MAX_X][MAX_Z][6*4*16*16*128]; /* 786k longs */
 long idx_idx;
 GLuint program_shd;
@@ -308,7 +309,7 @@ int main(int argc, char *argv[])
 	for (x = 0 ; x < MAX_X ; x++) {
 		for (z = 0 ; z < MAX_Z ; z++) {
 			build_vertex_arrays(ch[x][z],vertices[x][z],
-					attribs[x][z],
+					attribs[x][z], light_attr[x][z],
 					indices[x][z]);
 		}
 	}
@@ -348,8 +349,9 @@ typedef struct {
 	char zminus;
 } neighbours_t;
 
-int write_cube_vertex_array(int x, int y, int z, char type, neighbours_t *nghb,
-		GLfloat *vertices, GLint *attribs, GLuint *indices,
+int write_cube_vertex_array(int x, int y, int z, char type, unsigned char light,
+		neighbours_t *nghb,
+		GLfloat *vertices, GLint *attribs, GLubyte *light_attr, GLuint *indices,
 		long *vert_idx, long *attr_idx, long *idx_idx)
 {
 	//int v = *vert_idx;
@@ -371,6 +373,7 @@ int write_cube_vertex_array(int x, int y, int z, char type, neighbours_t *nghb,
 				vertices[(*vert_idx) + (a*12)+(d*6)+(c*3)+1] = y+d;
 				vertices[(*vert_idx) + (a*12)+(d*6)+(c*3)+2] = z+c;
 				attribs[(*attr_idx) + (a*4)+(d*2)+c] = (GLint)type;
+				light_attr[(*attr_idx) + (a*4)+(d*2)+c] = light;
 			}	
 		}
 	}
@@ -426,7 +429,7 @@ int write_cube_vertex_array(int x, int y, int z, char type, neighbours_t *nghb,
 	return 0;
 }
 
-void build_vertex_arrays(chunk_t *ch, GLfloat *vertices, GLint *attribs, GLuint *indices)
+void build_vertex_arrays(chunk_t *ch, GLfloat *vertices, GLint *attribs, GLubyte *light_attr, GLuint *indices)
 {
 	long i;
 	int x, y, z;
@@ -453,9 +456,13 @@ void build_vertex_arrays(chunk_t *ch, GLfloat *vertices, GLint *attribs, GLuint 
 					continue;
 				}
 				//printf("type: %i\n", type);
-				write_cube_vertex_array(x+ch->pos.x*15, y, z+ch->pos.z*15, type, &nghb,
-							vertices, attribs, indices,
-							&vert_idx, &attr_idx, &idx_idx);
+				unsigned char light = ((ch->sky_light[i/2] << (i%2 ? 4 : 0)));
+				if (light != 0 && light != 240)
+				printf("Light for cube is : %i\n", light);
+				write_cube_vertex_array(x+ch->pos.x*15, y, z+ch->pos.z*15, type, light,
+						&nghb,
+						vertices, attribs, light_attr, indices,
+						&vert_idx, &attr_idx, &idx_idx);
 				i++;
 			}
 		}
@@ -466,11 +473,12 @@ void draw()
 {
 
 	int x, z;
-	GLint type_arg, colors_arg;
+	GLint type_arg, colors_arg, light_arg;
 
 	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
 	type_arg = glGetAttribLocation(program_shd, "type");
+	light_arg = glGetAttribLocation(program_shd, "blk_light");
 	colors_arg = glGetUniformLocation(program_shd, "colors");
 
 	glMatrixMode( GL_MODELVIEW );
@@ -484,6 +492,7 @@ void draw()
 	//printf("=====================\n");
 	glEnable(GL_VERTEX_ARRAY);
 	glEnableVertexAttribArray(type_arg);
+	glEnableVertexAttribArray(light_arg);
 	glEnableClientState(GL_VERTEX_ARRAY);
 	for (x = 0; x < MAX_X ; x++) {
 		for (z = 0; z < MAX_Z ; z++) {
@@ -500,6 +509,7 @@ void draw()
 #else
 			glVertexPointer(3, GL_FLOAT, 0, vertices[x][z]);
 			glVertexAttribPointer(type_arg, 1, GL_INT, GL_FALSE, 0, attribs[x][z]);
+			glVertexAttribPointer(light_arg, 1, GL_UNSIGNED_BYTE, GL_TRUE, 0, light_attr[x][z]);
 //			printf("Drawing with %i indices\n", idx_idx);
 			glDrawElements(GL_QUADS, idx_idx, GL_UNSIGNED_INT, indices[x][z]);
 #endif
@@ -512,6 +522,7 @@ void draw()
 		}
 	}
 	glDisableVertexAttribArray(type_arg);
+	glDisableVertexAttribArray(light_arg);
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glDisable(GL_VERTEX_ARRAY);
 	//printf("%li elements to draw\n", idx_idx);

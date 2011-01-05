@@ -3,16 +3,9 @@ uniform vec3 colors[128];
 
 /* vertex shader */
 attribute float type;
+attribute float blk_light;
 varying vec3 color;
 void main(void) {
-	//color = vec3(0.0, 1.0, 0.0); //colors[int(type)];
-	color = colors[uint(type)];
-	/*switch (int(type)) {
-		//case 1: color=vec3(1.0, 0.0, 0.0); break;
-		//case 2: color=vec3(0.0, 1.0, 0.0); break;
-		case 1: color=colors[1]; break;
-		case 2: color=colors[2]; break;
-		default: color=vec3(0.0, 0.0, 1.0); break;
-	}*/
+	color = colors[uint(type)] * (blk_light + 4.0)/5.0;
 	gl_Position = ftransform();
 }
