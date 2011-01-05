@@ -1,9 +1,10 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <GL/glut.h>
+#include <GL/glext.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <pthread.h>
+#include <string.h>
 
 #include "chunk.h"
 
@@ -15,13 +16,97 @@ int distance = 60;
 
 void draw();
 
-#define MAX_X 8
-#define MAX_Z 8
+#define MAX_X 9
+#define MAX_Z 9
 
+GLfloat blk_colors[255*3] =
+{ 0.0, 0.0, 0.0
+, 0.5, 0.5, 0.5		// stone
+, 0.5, 1.0, 0.0		// grass
+, 0.55, 0.27, 0.08	// dirt
+, 0.38, 0.38, 0.38	// cobblestone
+, 0.0, 0.0, 0.0		// 5
+, 0.0, 0.0, 0.0		// 6
+, 0.22, 0.22, 0.22	// bedrock
+, 0.0, 0.0, 0.0		// 8
+, 0.0, 0.0, 0.39	// water
+, 0.0, 0.0, 0.0		// 10
+, 1.0, 0.25, 0.0	// lava
+, 0.76, 0.70, 0.5	// sand
+, 0.43, 0.39, 0.39	// gravel
+, 0.80, 0.63, 0.21	// gold ore
+, 0.64, 0.64, 0.64	// iron ore
+, 0.13, 0.13, 0.13	// coal ore
+, 0.0, 0.0, 0.0		// 17
+, 0.0, 0.0, 0.0		// 17
+, 0.0, 0.0, 0.0		// 17
+, 0.0, 0.0, 0.0		// 17
+, 0.0, 0.0, 0.0		// 17
+, 0.0, 0.0, 0.0		// 17
+, 0.0, 0.0, 0.0		// 17
+, 0.0, 0.0, 0.0		// 17
+, 0.0, 0.0, 0.0		// 17
+, 0.0, 0.0, 0.0		// 17
+, 0.0, 0.0, 0.0		// 17
+, 0.0, 0.0, 0.0		// 17
+, 0.0, 0.0, 0.0		// 17
+, 0.0, 0.0, 0.0		// 17
+, 0.0, 0.0, 0.0		// 17
+, 0.0, 0.0, 0.0		// 17
+, 0.0, 0.0, 0.0		// 17
+, 0.0, 0.0, 0.0		// 17
+, 0.0, 0.0, 0.0		// 17
+, 0.0, 0.0, 0.0		// 17
+, 0.0, 0.0, 0.0		// 17
+, 0.0, 0.0, 0.0		// 17
+, 0.0, 0.0, 0.0		// 17
+, 0.0, 0.0, 0.0		// 17
+, 0.0, 0.0, 0.0		// 17
+, 0.0, 0.0, 0.0		// 17
+, 0.0, 0.0, 0.0		// 17
+, 0.0, 0.0, 0.0		// 17
+, 0.0, 0.0, 0.0		// 17
+, 0.0, 0.0, 0.0		// 17
+, 0.0, 0.0, 0.0		// 47
+, 0.0, 0.25, 0.0	// mossy cobblestone
+, 0.05, 0.0, 0.05	// obsidian
+, 0.0, 0.0, 0.0		// 50
+, 0.0, 0.0, 0.0		// 50
+, 0.0, 0.0, 0.0		// 50
+, 0.0, 0.0, 0.0		// 50
+, 0.0, 0.0, 0.0		// 50
+, 0.0, 0.0, 0.0		// 55
+, 0.0, 0.0, 0.78	// diamond
+, 0.0, 0.0, 0.0		// 57
+, 0.0, 0.0, 0.0		// 57
+, 0.0, 0.0, 0.0		// 57
+, 0.0, 0.0, 0.0		// 57
+, 0.0, 0.0, 0.0		// 57
+, 0.0, 0.0, 0.0		// 57
+, 0.0, 0.0, 0.0		// 57
+, 0.0, 0.0, 0.0		// 57
+, 0.0, 0.0, 0.0		// 57
+, 0.0, 0.0, 0.0		// 57
+, 0.0, 0.0, 0.0		// 57
+, 0.0, 0.0, 0.0		// 57
+, 0.0, 0.0, 0.0		// 57
+, 0.0, 0.0, 0.0		// 57
+, 0.0, 0.0, 0.0		// 57
+, 0.0, 0.0, 0.0		// 72
+, 0.5, 0.0, 0.0		// redstone ore
+, 0.0, 0.0, 0.0		// 74
+, 0.0, 0.0, 0.0		// 74
+, 0.0, 0.0, 0.0		// 74
+, 0.0, 0.0, 0.0		// 74
+, 0.0, 0.0, 0.0		// 74
+, 0.0, 0.0, 0.0		// 74
+, 0.0, 0.0, 0.0		// 74
+, 0.0, 0.25, 0.0	// cacti
+};
 
 int limit_min_y = 0;
 chunk_t *ch[MAX_X][MAX_Z];
-void build_vertex_arrays(chunk_t *ch, GLfloat *vertices, GLubyte *colors, GLuint *indices, GLfloat *normals);
+void build_vertex_arrays(chunk_t *ch, GLfloat *vertices, GLint *attribs, GLuint *indices);
 int need_redraw = 1;
 
 int count_redraws = 0;
@@ -29,10 +114,92 @@ int count_redraws = 0;
 int btn_down = 0;
 int old_x = 0, old_y = 0;
 GLfloat vertices[MAX_X][MAX_Z][8*3*16*16*128]; /* 786k floats */
-GLfloat normals[MAX_X][MAX_Z][8*3*16*16*128]; /* 786k floats */
-GLubyte colors[MAX_X][MAX_Z][8*3*16*16*128]; /* 786k floats */
+GLint attribs[MAX_X][MAX_Z][8*16*16*128]; /* 786k floats */
 GLuint indices[MAX_X][MAX_Z][6*4*16*16*128]; /* 786k longs */
 long idx_idx;
+GLuint program_shd;
+
+void prepare_shader(char *vprog, char *pprog, GLuint *vertex, GLuint *pixel, GLuint *program)
+{
+	char *vsrc = NULL, *psrc = NULL;
+	int vsrclen, psrclen;
+	int i;
+	int cnt;
+	FILE *f;
+	int compile_ok, link_ok;
+
+	/* read and prepare vertex shader */
+	*vertex = glCreateShader(GL_VERTEX_SHADER);
+	i = 1;
+	cnt = 0;
+	f = fopen(vprog, "r");
+	do {
+		printf("read %i times\n", i-1);
+		vsrc = realloc(vsrc, 1024*i);
+		cnt += fread(vsrc+1024*(i-1), sizeof(char), 1024, f);
+		i++;
+	} while (!feof(f));
+	fclose(f);
+	vsrc[cnt] = '\0';
+	vsrclen = strlen(vprog);
+	printf("Vertex shader %s (%i) : %s\n", vprog, cnt, vsrc);
+	glShaderSource(*vertex, 1, &vsrc, NULL);
+
+	/* read and prepare pixel shader */
+	*pixel = glCreateShader(GL_FRAGMENT_SHADER);
+	i = 1;
+	cnt = 0;
+	f = fopen(pprog, "r");
+	do {
+		psrc = realloc(psrc, 1024*i);
+		cnt += fread(psrc+1024*(i-1), sizeof(char), 1024, f);
+		i++;
+	} while (!feof(f));
+	fclose(f);
+	psrc[cnt] = '\0';
+	psrclen = strlen(pprog);
+	printf("Pixel shader : %s\n", psrc);
+	glShaderSource(*pixel, 1, &psrc, NULL);
+
+	/* compile vertex shader */
+	glCompileShader(*vertex);
+	glGetShaderiv(*vertex, GL_COMPILE_STATUS, &compile_ok);
+	if (!compile_ok) {
+		printf("Could not compile vertex shader\n");
+		char log[512];
+		int s;
+		glGetShaderInfoLog(*vertex, 512, &s, log);
+		printf("%s\n", log);
+		exit(0);
+	}
+	/* compile pixel shader */
+	glCompileShader(*pixel);
+	glGetShaderiv(*pixel, GL_COMPILE_STATUS, &compile_ok);
+	if (!compile_ok) {
+		printf("Could not compile pixel shader\n");
+		char log[512];
+		int s;
+		glGetShaderInfoLog(*pixel, 512, &s, log);
+		printf("%s\n", log);
+		exit(0);
+	}
+
+	*program = glCreateProgram();
+	glAttachShader(*program, *vertex);
+	glAttachShader(*program, *pixel);
+	glLinkProgram(*program);
+
+	glGetProgramiv(*program, GL_LINK_STATUS, &link_ok);
+	if (!link_ok) {
+		printf("Could not link program\n");
+		char log[512];
+		int s;
+		glGetProgramInfoLog(*program, 512, &s, log);
+		printf("%s\n", log);
+		exit(0);
+	}
+	//glBindFragDataLocation(*program, 0, "gl_FragColor");
+}
 
 void benchmark(int value)
 {
@@ -94,10 +261,12 @@ void print_indices(GLuint *indices)
 	}
 }
 
+GLuint vbo_ids[3];
 int main(int argc, char *argv[])
 {
 
 	int x, z;
+	GLuint vprog, pprog;
 	for (x = 0; x < MAX_X ; x++) {
 		for (z = 0; z < MAX_Z ; z++) {
 			char chunk_name[256];
@@ -122,23 +291,35 @@ int main(int argc, char *argv[])
 	gluPerspective(70,(double)640/480,1,1000);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_COLOR_MATERIAL);
-	glEnable(GL_LIGHTING) ;                 // Active la gestion des lumières
+	//glEnable(GL_LIGHTING) ;                 // Active la gestion des lumières
 	glEnable(GL_LIGHT0) ;                      // allume la lampe 0
-	glEnable(GL_CULL_FACE);
-	glEnable(GL_NORMALIZE);
+	//glEnable(GL_CULL_FACE);
+	//glEnable(GL_NORMALIZE);
 	glShadeModel(GL_FLAT);
+	/* enable VBO */
+	glGenBuffers(3, vbo_ids);
 
+	printf("GL_VERSION : %s\n", glGetString(GL_VERSION));
+	printf("GL_SHADING_VERSION : %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
 	/* vertex arrays */
 	glEnableClientState(GL_VERTEX_ARRAY);
-        glEnableClientState(GL_COLOR_ARRAY);
-        glEnableClientState(GL_NORMAL_ARRAY);
+        //glEnableClientState(GL_COLOR_ARRAY);
+        //glEnableClientState(GL_NORMAL_ARRAY);
 	for (x = 0 ; x < MAX_X ; x++) {
 		for (z = 0 ; z < MAX_Z ; z++) {
 			build_vertex_arrays(ch[x][z],vertices[x][z],
-					colors[x][z], indices[x][z],
-					normals[x][z]);
+					attribs[x][z],
+					indices[x][z]);
 		}
 	}
+	/* bind and load indices */
+	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_ids[0]); /* index vbo */
+	//glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6*4*16*16*128*sizeof(GLuint), indices[0][0], GL_STATIC_DRAW);
+	/* bind and load vertices&shader args */
+	//glBindBuffer(GL_ARRAY_BUFFER, vbo_ids[1]);	   /* vertex vbo */
+	//glBufferSubData(GL_ARRAY_BUFFER, 0, 3*8*16*16*128*sizeof(GLfloat), vertices[0][0], GL_STATIC_DRAW);
+	/* bind and load shader args */
+	//glBufferSubData(GL_ARRAY_BUFFER, 3*8*16*16*128*sizeof(GLfloat), 8*16*16*128*sizeof(GLint), attribs[0][0], GL_STATIC_DRAW);
 	//print_vertices(vertices);
 	//print_indices(indices);
 
@@ -146,6 +327,9 @@ int main(int argc, char *argv[])
 	GLfloat position[] = { -1.5f, 1.0f, -4.0f, 1.0f };
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
 	glLightfv(GL_LIGHT0, GL_POSITION, position);
+
+	prepare_shader("vertex.shd", "pixel.shd", &vprog, &pprog, &program_shd);
+	glUseProgram(program_shd);
 
 #ifdef BENCHMARK
 	glutTimerFunc (10000, &benchmark, 0);
@@ -165,67 +349,20 @@ typedef struct {
 } neighbours_t;
 
 int write_cube_vertex_array(int x, int y, int z, char type, neighbours_t *nghb,
-		GLfloat *vertices, GLubyte *colors, GLuint *indices, GLfloat *normals,
-		long *vert_idx, long *col_idx, long *idx_idx, long *nml_idx)
+		GLfloat *vertices, GLint *attribs, GLuint *indices,
+		long *vert_idx, long *attr_idx, long *idx_idx)
 {
 	//int v = *vert_idx;
 	int a, d, c;
+#if 0
 	GLubyte r, g, b;
 	switch(type) {
-	case 1: /* stone */
-		r = 128; g = 128; b = 128;
-		break;
-	case 7: /* bedrock */
-		r = 56; g = 56; b = 56;
-		break;
-	case 3: /* dirt */
-		r = 139; g = 69; b = 19;
-		break;
-	case 2: /* grass */
-		r = 128; g = 255; b = 0;
-		break;
-	case 12: /* sand */
-		r = 194; g = 178; b = 128;
-		break;
-	case 13: /* gravel */
-		r = 110; g = 100; b = 100;
-		break;
-	case 9: /* water */
-		r = 0; g = 0; b = 100;
-		break;
-	case 15: /* iron ore */
-		r = 164; g = 164; b = 164;
-		break;
-	case 14: /* gold ore */
-		r = 203; g = 161; b = 53;
-		break;
-	case 16: /* coal ore */
-		r = 32; g = 32; b = 32;
-		break;
-	case 73: /* redstone ore */
-		r = 128; g = 0; b = 0;
-		break;
-	case 49: /* obsidian */
-		r = 0; g = 0; b = 0;
-		break;
-	case 11: /* lava */
-		r = 255; g = 64; b = 0;
-		break;
-	case 81: /* cacti */
-	case 48: /* mossy cobblestone */
-		r = 0; g = 64; b = 0;
-		break;
-	case 4: /* cobblestone */
-		r = 96; g = 96; b = 96;
-		break;
-	case 56: /* diamond */
-		r = 0; g = 0; b = 200;
-		break;
 	default:
 		printf("Unknown color for : %i\n", type);
 		r = 200; g = 200; b = 200;
 		break;
 	}
+#endif
 
 	for (a = 0 ; a <= 1 ; a++) {
 		for (d = 0 ; d <= 1 ; d++) {
@@ -233,12 +370,7 @@ int write_cube_vertex_array(int x, int y, int z, char type, neighbours_t *nghb,
 				vertices[(*vert_idx) + (a*12)+(d*6)+(c*3)] = x+a;
 				vertices[(*vert_idx) + (a*12)+(d*6)+(c*3)+1] = y+d;
 				vertices[(*vert_idx) + (a*12)+(d*6)+(c*3)+2] = z+c;
-				colors[(*col_idx) + (a*12)+(d*6)+(c*3)] = r;
-				colors[(*col_idx) + (a*12)+(d*6)+(c*3)+1] = g;
-				colors[(*col_idx) + (a*12)+(d*6)+(c*3)+2] = b;
-				normals[(*nml_idx) + (a*12)+(d*6)+(c*3)] = (a == 0 ? -1 : 1);
-				normals[(*nml_idx) + (a*12)+(d*6)+(c*3)+1] = (d == 0 ? -1 : 1);
-				normals[(*nml_idx) + (a*12)+(d*6)+(c*3)+2] = (c == 0 ? -1 : 1);
+				attribs[(*attr_idx) + (a*4)+(d*2)+c] = (GLint)type;
 			}	
 		}
 	}
@@ -290,19 +422,18 @@ int write_cube_vertex_array(int x, int y, int z, char type, neighbours_t *nghb,
 
 	*idx_idx = i;	/* */
 	*vert_idx += 24;	/* 8 vertices per cube * 3 components (x,y,z) */
-	*col_idx += 24;	/* one color per vertex * 3 components (r,g,b) */
-	*nml_idx += 24;
+	*attr_idx += 8;
 	return 0;
 }
 
-void build_vertex_arrays(chunk_t *ch, GLfloat *vertices, GLubyte *colors, GLuint *indices, GLfloat *normals)
+void build_vertex_arrays(chunk_t *ch, GLfloat *vertices, GLint *attribs, GLuint *indices)
 {
 	long i;
 	int x, y, z;
 	neighbours_t nghb = {0};
 	i = 0;
 
-	long col_idx = 0, vert_idx = 0, nml_idx = 0;
+	long attr_idx = 0, vert_idx = 0;
 	idx_idx = 0;
 
 	for (x = 0 ; x < 16 ; x++) {
@@ -323,8 +454,8 @@ void build_vertex_arrays(chunk_t *ch, GLfloat *vertices, GLubyte *colors, GLuint
 				}
 				//printf("type: %i\n", type);
 				write_cube_vertex_array(x+ch->pos.x*15, y, z+ch->pos.z*15, type, &nghb,
-							vertices, colors, indices, normals,
-							&vert_idx, &col_idx, &idx_idx, &nml_idx);
+							vertices, attribs, indices,
+							&vert_idx, &attr_idx, &idx_idx);
 				i++;
 			}
 		}
@@ -335,27 +466,54 @@ void draw()
 {
 
 	int x, z;
+	GLint type_arg, colors_arg;
 
 	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
+	type_arg = glGetAttribLocation(program_shd, "type");
+	colors_arg = glGetUniformLocation(program_shd, "colors");
 
 	glMatrixMode( GL_MODELVIEW );
 	glLoadIdentity( );
-	//gluLookAt(-1,64+distance,-1,8,64,8,0,1,0);
-	gluLookAt(0,32+distance,0,8,32,8,0,1,0);
+	gluLookAt(-1,64+distance,-1,8,64,8,0,1,0);
+	//gluLookAt(0,32+distance,0,8,32,8,0,1,0);
 	//gluLookAt(-5, -5, -5, 0, 0, 0,0,1,0);
 	glRotated(angle_x, 1, 0, 0);
 	glRotated(angle_y, 0, 1, 0);
 	//glRotated(angle_z, 0, 0, 1);
 	//printf("=====================\n");
+	glEnable(GL_VERTEX_ARRAY);
+	glEnableVertexAttribArray(type_arg);
+	glEnableClientState(GL_VERTEX_ARRAY);
 	for (x = 0; x < MAX_X ; x++) {
 		for (z = 0; z < MAX_Z ; z++) {
-			glVertexPointer(3, GL_FLOAT, 3*sizeof(GLfloat), vertices[x][z]);
-			glColorPointer(3, GL_UNSIGNED_BYTE, 0, colors[x][z]);
-			glNormalPointer(GL_FLOAT, 0, normals[x][z]);
+			/* link uniform data to shader */
+			glUniform3fv(colors_arg, 128, blk_colors);
+#if 0
+			/* bind VBOs */
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_ids[0]); /* index vbo */
+			glBindBuffer(GL_ARRAY_BUFFER, vbo_ids[1]);	   /* vertex vbo */
+			/* point to data */
+			glVertexPointer(3, GL_FLOAT, 3*sizeof(GLfloat), 0);
+			glVertexAttribPointer(type_arg, 1, GL_INT, GL_FALSE, 0, sizeof(GLfloat)*6*4*8*8*16);
+			glDrawElements(GL_QUADS, idx_idx, GL_UNSIGNED_INT, 0);
+#else
+			glVertexPointer(3, GL_FLOAT, 0, vertices[x][z]);
+			glVertexAttribPointer(type_arg, 1, GL_INT, GL_FALSE, 0, attribs[x][z]);
+//			printf("Drawing with %i indices\n", idx_idx);
 			glDrawElements(GL_QUADS, idx_idx, GL_UNSIGNED_INT, indices[x][z]);
+#endif
+			
+#if 0
+			/* cleanup */
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0); /* index vbo */
+			glBindBuffer(GL_ARRAY_BUFFER, 0); /* index vbo */
+#endif
 		}
 	}
+	glDisableVertexAttribArray(type_arg);
+	glDisableClientState(GL_VERTEX_ARRAY);
+	glDisable(GL_VERTEX_ARRAY);
 	//printf("%li elements to draw\n", idx_idx);
 
 	glFlush();

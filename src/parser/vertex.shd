@@ -1,0 +1,18 @@
+#version 410
+uniform vec3 colors[128];
+
+/* vertex shader */
+attribute float type;
+varying vec3 color;
+void main(void) {
+	//color = vec3(0.0, 1.0, 0.0); //colors[int(type)];
+	color = colors[uint(type)];
+	/*switch (int(type)) {
+		//case 1: color=vec3(1.0, 0.0, 0.0); break;
+		//case 2: color=vec3(0.0, 1.0, 0.0); break;
+		case 1: color=colors[1]; break;
+		case 2: color=colors[2]; break;
+		default: color=vec3(0.0, 0.0, 1.0); break;
+	}*/
+	gl_Position = ftransform();
+}

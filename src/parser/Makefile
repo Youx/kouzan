@@ -5,7 +5,7 @@
 # this stuff is worth it, you can buy me a beer in return. Lukas Niederbremer.
 # -----------------------------------------------------------------------------
 
-CFLAGS=-g -Wall -fPIC
+CFLAGS=-ggdb -Wall -fPIC
 RM=rm
 
 default: level_data_test chunk_test renderer renderer_benchmark
