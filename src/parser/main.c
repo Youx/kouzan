@@ -104,19 +104,29 @@ GLfloat blk_colors[255*3] =
 , 0.0, 0.25, 0.0	// cacti
 };
 
+struct vertex_t {
+	GLfloat x;	// 32 bits
+	GLfloat y;	// 32 bits
+	GLfloat z;	// 32 bits
+	GLubyte type;	// 8 bits
+	GLubyte light;	// 8 bits
+	GLubyte padding[2];// 16 bits
+}; /* total : 128 bits */
+
 int limit_min_y = 0;
 chunk_t *ch[MAX_X][MAX_Z];
-void build_vertex_arrays(chunk_t *ch, GLfloat *vertices, GLint *attribs, GLubyte *light_attr, GLuint *indices);
+void build_vertex_arrays(chunk_t *ch, GLuint *indices, struct vertex_t *vertices);
 int need_redraw = 1;
 
 int count_redraws = 0;
 
 int btn_down = 0;
 int old_x = 0, old_y = 0;
-GLfloat vertices[MAX_X][MAX_Z][8*3*16*16*128]; /* 786k floats */
-GLint attribs[MAX_X][MAX_Z][8*16*16*128]; /* 786k floats */
-GLubyte light_attr[MAX_X][MAX_Z][8*16*16*128]; /* 786k floats */
-GLuint indices[MAX_X][MAX_Z][6*4*16*16*128]; /* 786k longs */
+#define BLK_PER_CHUNK (16*16*128)
+
+struct vertex_t vertices_pack[MAX_X][MAX_Z][8*BLK_PER_CHUNK];
+
+GLuint indices[MAX_X][MAX_Z][6*4*BLK_PER_CHUNK]; /* 786k longs */
 long idx_idx;
 GLuint program_shd;
 
@@ -236,7 +246,6 @@ void mouse(int btn, int state, int x, int y)
 
 void motion(int x, int y)
 {
-	
 	if (btn_down) {
 		angle_x = (angle_x + (x - old_x))%360;
 		angle_y = (angle_y + (y - old_y))%360;
@@ -282,7 +291,7 @@ int main(int argc, char *argv[])
 	glutInitWindowSize(640, 480);
 	glutInitDisplayMode(GLUT_RGBA|GLUT_DEPTH|GLUT_DOUBLE);
 	glutCreateWindow("GLUT Application");
-	
+
 	glutDisplayFunc(&draw);
 	glutMouseFunc(&mouse);
 	glutMotionFunc(&motion);
@@ -310,9 +319,7 @@ int main(int argc, char *argv[])
         //glEnableClientState(GL_NORMAL_ARRAY);
 	for (x = 0 ; x < MAX_X ; x++) {
 		for (z = 0 ; z < MAX_Z ; z++) {
-			build_vertex_arrays(ch[x][z],vertices[x][z],
-					attribs[x][z], light_attr[x][z],
-					indices[x][z]);
+			build_vertex_arrays(ch[x][z], indices[x][z], vertices_pack[x][z]);
 		}
 	}
 #ifdef _USE_VBO
@@ -321,23 +328,7 @@ int main(int argc, char *argv[])
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, (6*4*16*16*128*sizeof(GLuint)), indices[0][0], GL_STATIC_DRAW);
 	/* bind and load vertices&shader args */
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_ids[1]);	   /* vertex vbo */
-	glBufferData(GL_ARRAY_BUFFER, (3*8*16*16*128*sizeof(GLuint))+(8*16*16*128*sizeof(GLint))+(8*16*16*128*sizeof(GLubyte)), NULL, GL_STATIC_DRAW);
-	glBufferSubData(GL_ARRAY_BUFFER,
-			0,				/* offset */
-			3*8*16*16*128*sizeof(GLfloat),	/* size */
-			vertices[0][0],			/* ptr */
-			GL_STATIC_DRAW);
-	/* bind and load shader args */
-	glBufferSubData(GL_ARRAY_BUFFER,
-			3*8*16*16*128*sizeof(GLfloat),	/* offset */
-			8*16*16*128*sizeof(GLint),	/* size */
-			attribs[0][0],			/* ptr */
-			GL_STATIC_DRAW);
-	glBufferSubData(GL_ARRAY_BUFFER,
-			(3*8*16*16*128*sizeof(GLfloat))+(8*16*16*128*sizeof(GLint)), /* offset */
-			8*16*16*128*sizeof(GLubyte),	/* size */
-			light_attr[0][0],		/* ptr */
-			GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, (8*BLK_PER_CHUNK*sizeof(struct vertex_t)), vertices_pack, GL_STATIC_DRAW);
 #endif
 	//print_vertices(vertices);
 	//print_indices(indices);
@@ -367,94 +358,85 @@ typedef struct {
 	char zminus;
 } neighbours_t;
 
-int write_cube_vertex_array(int x, int y, int z, char type, unsigned char light,
+int write_cube_vertex_array(int x, int y, int z,
+		unsigned char type, unsigned char light,
 		neighbours_t *nghb,
-		GLfloat *vertices, GLint *attribs, GLubyte *light_attr, GLuint *indices,
-		long *vert_idx, long *attr_idx, long *idx_idx)
+		GLuint *indices, struct vertex_t *vertices_pack,
+		long *idx_idx, long *vert_idx)
 {
 	//int v = *vert_idx;
-	int a, d, c;
-#if 0
-	GLubyte r, g, b;
-	switch(type) {
-	default:
-		printf("Unknown color for : %i\n", type);
-		r = 200; g = 200; b = 200;
-		break;
-	}
-#endif
+	int a, b, c;
 
 	for (a = 0 ; a <= 1 ; a++) {
-		for (d = 0 ; d <= 1 ; d++) {
+		for (b = 0 ; b <= 1 ; b++) {
 			for (c = 0 ; c <= 1 ; c++) {
-				vertices[(*vert_idx) + (a*12)+(d*6)+(c*3)] = x+a;
-				vertices[(*vert_idx) + (a*12)+(d*6)+(c*3)+1] = y+d;
-				vertices[(*vert_idx) + (a*12)+(d*6)+(c*3)+2] = z+c;
-				attribs[(*attr_idx) + (a*4)+(d*2)+c] = (GLint)type;
-				light_attr[(*attr_idx) + (a*4)+(d*2)+c] = light;
-			}	
+				vertices_pack[(*vert_idx) + (a*4)+(b*2)+c].x = (x+a);
+				vertices_pack[(*vert_idx) + (a*4)+(b*2)+c].y = (y+b);
+				vertices_pack[(*vert_idx) + (a*4)+(b*2)+c].z = (z+c);
+				vertices_pack[(*vert_idx) + (a*4)+(b*2)+c].type = (GLubyte)type;
+				vertices_pack[(*vert_idx) + (a*4)+(b*2)+c].light = (GLubyte)light;
+			}
 		}
 	}
 	long i = *idx_idx;
 	if (!nghb->zplus) {
 		//glNormal3f(0.0f, 0.0f, 1.0f);
-		indices[i++] = ((*vert_idx)/3)+1;
-		indices[i++] = ((*vert_idx)/3)+5;
-		indices[i++] = ((*vert_idx)/3)+7;
-		indices[i++] = ((*vert_idx)/3)+3;
+		indices[i++] = (*vert_idx)+1;
+		indices[i++] = (*vert_idx)+5;
+		indices[i++] = (*vert_idx)+7;
+		indices[i++] = (*vert_idx)+3;
 	}
 	if (!nghb->zminus) {
 		//glNormal3f(0.0f, 0.0f, -1.0f);
-		indices[i++] = ((*vert_idx)/3)+0;
-		indices[i++] = ((*vert_idx)/3)+2;
-		indices[i++] = ((*vert_idx)/3)+6;
-		indices[i++] = ((*vert_idx)/3)+4;
+		indices[i++] = (*vert_idx)+0;
+		indices[i++] = (*vert_idx)+2;
+		indices[i++] = (*vert_idx)+6;
+		indices[i++] = (*vert_idx)+4;
 	}
 	if (!nghb->yplus) {
 		//glNormal3f(0.0f, 1.0f, 0.0f);
-		indices[i++] = ((*vert_idx)/3)+2;
-		indices[i++] = ((*vert_idx)/3)+3;
-		indices[i++] = ((*vert_idx)/3)+7;
-		indices[i++] = ((*vert_idx)/3)+6;
+		indices[i++] = (*vert_idx)+2;
+		indices[i++] = (*vert_idx)+3;
+		indices[i++] = (*vert_idx)+7;
+		indices[i++] = (*vert_idx)+6;
 	}
 	if (!nghb->yminus) {
 		//glNormal3f(0.0f, -1.0f, 0.0f);
-		indices[i++] = ((*vert_idx)/3)+0;
-		indices[i++] = ((*vert_idx)/3)+4;
-		indices[i++] = ((*vert_idx)/3)+5;
-		indices[i++] = ((*vert_idx)/3)+1;
+		indices[i++] = (*vert_idx)+0;
+		indices[i++] = (*vert_idx)+4;
+		indices[i++] = (*vert_idx)+5;
+		indices[i++] = (*vert_idx)+1;
 	}
 	if (!nghb->xplus) {
 		//glNormal3f(1.0f, 0.0f, 0.0f);
-		indices[i++] = ((*vert_idx)/3)+4;
-		indices[i++] = ((*vert_idx)/3)+6;
-		indices[i++] = ((*vert_idx)/3)+7;
-		indices[i++] = ((*vert_idx)/3)+5;
+		indices[i++] = (*vert_idx)+4;
+		indices[i++] = (*vert_idx)+6;
+		indices[i++] = (*vert_idx)+7;
+		indices[i++] = (*vert_idx)+5;
 	}
 	if (!nghb->xminus) {
 		//glNormal3f(x, 0.0f, 0.0f);
-		indices[i++] = ((*vert_idx)/3)+0;
-		indices[i++] = ((*vert_idx)/3)+1;
-		indices[i++] = ((*vert_idx)/3)+3;
-		indices[i++] = ((*vert_idx)/3)+2;
+		indices[i++] = (*vert_idx)+0;
+		indices[i++] = (*vert_idx)+1;
+		indices[i++] = (*vert_idx)+3;
+		indices[i++] = (*vert_idx)+2;
 	}
 
 
 
 	*idx_idx = i;	/* */
-	*vert_idx += 24;	/* 8 vertices per cube * 3 components (x,y,z) */
-	*attr_idx += 8;
+	*vert_idx += 8;
 	return 0;
 }
 
-void build_vertex_arrays(chunk_t *ch, GLfloat *vertices, GLint *attribs, GLubyte *light_attr, GLuint *indices)
+void build_vertex_arrays(chunk_t *ch, GLuint *indices, struct vertex_t *vertices)
 {
 	long i;
 	int x, y, z;
 	neighbours_t nghb = {0};
 	i = 0;
 
-	long attr_idx = 0, vert_idx = 0;
+	long vert_idx = 0;
 	idx_idx = 0;
 
 	for (x = 0 ; x < 16 ; x++) {
@@ -479,8 +461,8 @@ void build_vertex_arrays(chunk_t *ch, GLfloat *vertices, GLint *attribs, GLubyte
 				printf("Light for cube is : %i\n", light);
 				write_cube_vertex_array(x+ch->pos.x*15, y, z+ch->pos.z*15, type, light,
 						&nghb,
-						vertices, attribs, light_attr, indices,
-						&vert_idx, &attr_idx, &idx_idx);
+						indices, vertices,
+						&idx_idx, &vert_idx);
 				i++;
 			}
 		}
@@ -502,17 +484,13 @@ void draw()
 	glMatrixMode( GL_MODELVIEW );
 	glLoadIdentity( );
 	gluLookAt(-1,64+distance,-1,8,64,8,0,1,0);
-	//gluLookAt(0,32+distance,0,8,32,8,0,1,0);
-	//gluLookAt(-5, -5, -5, 0, 0, 0,0,1,0);
 	glRotated(angle_x, 1, 0, 0);
 	glRotated(angle_y, 0, 1, 0);
-	//glRotated(angle_z, 0, 0, 1);
 	//printf("=====================\n");
 	glEnable(GL_VERTEX_ARRAY);
 	glEnableVertexAttribArray(type_arg);
 	glEnableVertexAttribArray(light_arg);
 	glEnableClientState(GL_VERTEX_ARRAY);
-
 	for (x = 0; x < MAX_X ; x++) {
 		for (z = 0; z < MAX_Z ; z++) {
 			/* link uniform data to shader */
@@ -522,17 +500,17 @@ void draw()
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_ids[0]); /* index vbo */
 			glBindBuffer(GL_ARRAY_BUFFER, vbo_ids[1]);	   /* vertex vbo */
 			/* point to data */
-			glVertexPointer(3, GL_FLOAT, 0, 0);
-			glVertexAttribPointer(type_arg, 1, GL_INT, GL_FALSE, 0, sizeof(GLfloat)*6*4*16*16*128);
-			glVertexAttribPointer(light_arg, 1, GL_UNSIGNED_BYTE, GL_TRUE, 0, (sizeof(GLfloat)*6*4*16*16*128)+(8*16*16*128*sizeof(GLint)));
+			glVertexPointer(3, GL_FLOAT, sizeof(struct vertex_t), 0);
+			glVertexAttribPointer(type_arg, 1, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(struct vertex_t), sizeof(GLfloat) * 3);
+			glVertexAttribPointer(light_arg, 1, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(struct vertex_t), sizeof(GLubyte)+(sizeof(GLfloat)*3));
 			glDrawElements(GL_QUADS, idx_idx, GL_UNSIGNED_INT, 0);
 #else
-			glVertexPointer(3, GL_FLOAT, 0, vertices[x][z]);
-			glVertexAttribPointer(type_arg, 1, GL_INT, GL_FALSE, 0, attribs[x][z]);
-			glVertexAttribPointer(light_arg, 1, GL_UNSIGNED_BYTE, GL_TRUE, 0, light_attr[x][z]);
+			glVertexPointer(3, GL_FLOAT, sizeof(struct vertex_t), &(vertices_pack[x][z][0].x));
+			glVertexAttribPointer(type_arg, 1, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(struct vertex_t), &(vertices_pack[x][z][0].type));
+			glVertexAttribPointer(light_arg, 1, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(struct vertex_t), &(vertices_pack[x][z][0].light));
 			glDrawElements(GL_QUADS, idx_idx, GL_UNSIGNED_INT, indices[x][z]);
 #endif
-			
+
 #ifdef _USE_VBO
 			/* cleanup */
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0); /* index vbo */
