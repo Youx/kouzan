@@ -13,4 +13,12 @@ to make it as fast as can be.
 Screens
 -------
 
-![Screenshot1](http://cloud.github.com/downloads/Youx/kouzan/2011-01-05-222626_1678x1029_scrot.png)
+See Download section
+
+Performance
+-----------
+
+(Reference machine is a i5 760 + HD6850)
+
+Performance on 1 chunk with VBO turned on : ~1000 fps
+Performance on 1 chunk with VBO turned off : ~650 fps
