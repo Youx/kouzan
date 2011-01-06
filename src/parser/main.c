@@ -16,8 +16,8 @@ int distance = 60;
 
 void draw();
 
-#define MAX_X 9
-#define MAX_Z 9
+#define MAX_X 1
+#define MAX_Z 1
 
 GLfloat blk_colors[255*3] =
 { 0.0, 0.0, 0.0
@@ -298,7 +298,9 @@ int main(int argc, char *argv[])
 	//glEnable(GL_NORMALIZE);
 	glShadeModel(GL_FLAT);
 	/* enable VBO */
-	glGenBuffers(3, vbo_ids);
+#ifdef _USE_VBO
+	glGenBuffers(2, vbo_ids);
+#endif
 
 	printf("GL_VERSION : %s\n", glGetString(GL_VERSION));
 	printf("GL_SHADING_VERSION : %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
@@ -313,14 +315,30 @@ int main(int argc, char *argv[])
 					indices[x][z]);
 		}
 	}
+#ifdef _USE_VBO
 	/* bind and load indices */
-	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_ids[0]); /* index vbo */
-	//glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6*4*16*16*128*sizeof(GLuint), indices[0][0], GL_STATIC_DRAW);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_ids[0]); /* index vbo */
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, (6*4*16*16*128*sizeof(GLuint)), indices[0][0], GL_STATIC_DRAW);
 	/* bind and load vertices&shader args */
-	//glBindBuffer(GL_ARRAY_BUFFER, vbo_ids[1]);	   /* vertex vbo */
-	//glBufferSubData(GL_ARRAY_BUFFER, 0, 3*8*16*16*128*sizeof(GLfloat), vertices[0][0], GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_ids[1]);	   /* vertex vbo */
+	glBufferData(GL_ARRAY_BUFFER, (3*8*16*16*128*sizeof(GLuint))+(8*16*16*128*sizeof(GLint))+(8*16*16*128*sizeof(GLubyte)), NULL, GL_STATIC_DRAW);
+	glBufferSubData(GL_ARRAY_BUFFER,
+			0,				/* offset */
+			3*8*16*16*128*sizeof(GLfloat),	/* size */
+			vertices[0][0],			/* ptr */
+			GL_STATIC_DRAW);
 	/* bind and load shader args */
-	//glBufferSubData(GL_ARRAY_BUFFER, 3*8*16*16*128*sizeof(GLfloat), 8*16*16*128*sizeof(GLint), attribs[0][0], GL_STATIC_DRAW);
+	glBufferSubData(GL_ARRAY_BUFFER,
+			3*8*16*16*128*sizeof(GLfloat),	/* offset */
+			8*16*16*128*sizeof(GLint),	/* size */
+			attribs[0][0],			/* ptr */
+			GL_STATIC_DRAW);
+	glBufferSubData(GL_ARRAY_BUFFER,
+			(3*8*16*16*128*sizeof(GLfloat))+(8*16*16*128*sizeof(GLint)), /* offset */
+			8*16*16*128*sizeof(GLubyte),	/* size */
+			light_attr[0][0],		/* ptr */
+			GL_STATIC_DRAW);
+#endif
 	//print_vertices(vertices);
 	//print_indices(indices);
 
@@ -494,27 +512,28 @@ void draw()
 	glEnableVertexAttribArray(type_arg);
 	glEnableVertexAttribArray(light_arg);
 	glEnableClientState(GL_VERTEX_ARRAY);
+
 	for (x = 0; x < MAX_X ; x++) {
 		for (z = 0; z < MAX_Z ; z++) {
 			/* link uniform data to shader */
 			glUniform3fv(colors_arg, 128, blk_colors);
-#if 0
+#ifdef _USE_VBO
 			/* bind VBOs */
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_ids[0]); /* index vbo */
 			glBindBuffer(GL_ARRAY_BUFFER, vbo_ids[1]);	   /* vertex vbo */
 			/* point to data */
-			glVertexPointer(3, GL_FLOAT, 3*sizeof(GLfloat), 0);
-			glVertexAttribPointer(type_arg, 1, GL_INT, GL_FALSE, 0, sizeof(GLfloat)*6*4*8*8*16);
+			glVertexPointer(3, GL_FLOAT, 0, 0);
+			glVertexAttribPointer(type_arg, 1, GL_INT, GL_FALSE, 0, sizeof(GLfloat)*6*4*16*16*128);
+			glVertexAttribPointer(light_arg, 1, GL_UNSIGNED_BYTE, GL_TRUE, 0, (sizeof(GLfloat)*6*4*16*16*128)+(8*16*16*128*sizeof(GLint)));
 			glDrawElements(GL_QUADS, idx_idx, GL_UNSIGNED_INT, 0);
 #else
 			glVertexPointer(3, GL_FLOAT, 0, vertices[x][z]);
 			glVertexAttribPointer(type_arg, 1, GL_INT, GL_FALSE, 0, attribs[x][z]);
 			glVertexAttribPointer(light_arg, 1, GL_UNSIGNED_BYTE, GL_TRUE, 0, light_attr[x][z]);
-//			printf("Drawing with %i indices\n", idx_idx);
 			glDrawElements(GL_QUADS, idx_idx, GL_UNSIGNED_INT, indices[x][z]);
 #endif
 			
-#if 0
+#ifdef _USE_VBO
 			/* cleanup */
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0); /* index vbo */
 			glBindBuffer(GL_ARRAY_BUFFER, 0); /* index vbo */

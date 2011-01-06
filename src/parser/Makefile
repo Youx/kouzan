@@ -8,10 +8,16 @@
 CFLAGS=-ggdb -Wall -fPIC
 RM=rm
 
-default: level_data_test chunk_test renderer renderer_benchmark
+default: level_data_test chunk_test renderer renderer_benchmark renderer_vbo renderer_vbo_benchmark
 
 renderer: libnbt.so main.c chunk.c chunk.h
 	$(CC) $(CFLAGS) -o $@ -L. -lGL -lGLU -lglut -lnbt -lz chunk.c main.c
+
+renderer_vbo: libnbt.so main.c chunk.c chunk.h
+	$(CC) $(CFLAGS) -o $@ -L. -lGL -lGLU -lglut -lnbt -lz -D_USE_VBO chunk.c main.c
+
+renderer_vbo_benchmark: libnbt.so main.c chunk.c chunk.h
+	$(CC) $(CFLAGS) -o $@ -L. -lGL -lGLU -lglut -lnbt -lz -DBENCHMARK -D_USE_VBO chunk.c main.c
 
 renderer_benchmark: libnbt.so main.c chunk.c chunk.h
 	$(CC) $(CFLAGS) -o $@ -L. -lGL -lGLU -lglut -lnbt -lz -DBENCHMARK chunk.c main.c

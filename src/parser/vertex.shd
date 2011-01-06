@@ -7,5 +7,7 @@ attribute float blk_light;
 varying vec3 color;
 void main(void) {
 	color = colors[uint(type)] * (blk_light + 4.0)/5.0;
+	//color = vec3(blk_light, 0.0, 0.0);
+	//color = vec3(type/255, 0.0, 0.0);
 	gl_Position = ftransform();
 }
