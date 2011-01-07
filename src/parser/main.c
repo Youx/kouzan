@@ -16,9 +16,13 @@ int distance = 60;
 
 void draw();
 
-#define MAX_X 9
+#define MAX_X 10
 #define MAX_Z 9
 
+#define MIN(a, b) \
+	(a < b ? a : b)
+#define MAX(a, b) \
+	(a > b ? a : b)
 GLfloat blk_colors[255*3] =
 { 0.0, 0.0, 0.0
 , 0.5, 0.5, 0.5		// stone
@@ -113,7 +117,7 @@ struct vertex_t {
 	GLubyte padding[2];// 16 bits
 }; /* total : 128 bits */
 
-int limit_min_y = 0;
+int limit_min_y = 48;
 chunk_t *ch[MAX_X][MAX_Z];
 void build_vertex_arrays(chunk_t *ch, GLuint *indices, struct vertex_t *vertices, long *idx_idx);
 int need_redraw = 1;
@@ -129,6 +133,7 @@ struct vertex_t vertices_pack[MAX_X][MAX_Z][8*BLK_PER_CHUNK];
 GLuint indices[MAX_X][MAX_Z][6*4*BLK_PER_CHUNK]; /* 786k longs */
 long idx_idx[MAX_X][MAX_Z];
 GLuint program_shd;
+GLuint vbo_ids[2*MAX_X*MAX_Z];
 
 void prepare_shader(char *vprog, char *pprog, GLuint *vertex, GLuint *pixel, GLuint *program)
 {
@@ -256,6 +261,37 @@ void motion(int x, int y)
 	//printf("motion : %i,%i\n", x, y);
 }
 
+void keyboard(unsigned char key, int x, int y)
+{
+	int limit_old = limit_min_y;
+	switch(key) {
+		case '+':
+			limit_min_y = MAX(limit_min_y-8, 0);
+			break;
+		case '-':
+			limit_min_y = MIN(limit_min_y+8, 64);
+			break;
+	}
+	if (limit_min_y != limit_old) {
+	int x, z;
+	for (x = 0 ; x < MAX_X ; x++) {
+		for (z = 0 ; z < MAX_Z ; z++) {
+			idx_idx[x][z] = 0;
+			build_vertex_arrays(ch[x][z], indices[x][z], vertices_pack[x][z], &idx_idx[x][z]);
+#ifdef _USE_VBO
+			/* bind and load indices */
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_ids[z*MAX_X*2+x*2]); /* index vbo */
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, (6*4*16*16*128*sizeof(GLuint)), indices[x][z], GL_STATIC_DRAW);
+			/* bind and load vertices&shader args */
+			glBindBuffer(GL_ARRAY_BUFFER, vbo_ids[z*MAX_X*2+x*2+1]);	   /* vertex vbo */
+			glBufferData(GL_ARRAY_BUFFER, (8*BLK_PER_CHUNK*sizeof(struct vertex_t)), vertices_pack[x][z], GL_STATIC_DRAW);
+#endif
+		}
+	}
+		glutPostRedisplay();
+	}
+}
+
 void print_vertices(GLfloat *vertices)
 {
 	int i;
@@ -271,7 +307,6 @@ void print_indices(GLuint *indices)
 	}
 }
 
-GLuint vbo_ids[2*MAX_X*MAX_Z];
 int main(int argc, char *argv[])
 {
 
@@ -280,7 +315,7 @@ int main(int argc, char *argv[])
 	for (x = 0; x < MAX_X ; x++) {
 		for (z = 0; z < MAX_Z ; z++) {
 			char chunk_name[256];
-			snprintf(chunk_name, sizeof(chunk_name), "../../save/world/%i/%i/c.%i.%i.dat", x, z, x, z);
+			snprintf(chunk_name, sizeof(chunk_name), "../../save/world/%x/%x/c.%x.%x.dat", x, z, x, z);
 			printf("loading : %s\n", chunk_name);
 			ch[x][z] = chunk_parse(chunk_name);
 			ch[x][z]->pos.x = x;
@@ -295,6 +330,7 @@ int main(int argc, char *argv[])
 	glutDisplayFunc(&draw);
 	glutMouseFunc(&mouse);
 	glutMotionFunc(&motion);
+	glutKeyboardFunc(&keyboard);
 
 	glMatrixMode( GL_PROJECTION );
 	glLoadIdentity();
@@ -449,7 +485,7 @@ void build_vertex_arrays(chunk_t *ch, GLuint *indices, struct vertex_t *vertices
 				nghb.xplus = (x+1 < 15) ? ch->blocks[i+(128*16)] : 0;
 				nghb.xminus = (x-1 > 0) ? ch->blocks[i-(128*16)] : 0;
 				//printf("computed id : %i VS expected : %i\n", y+(z*128)+(x*128*16), i);
-				if (type == 0) {
+				if (type == 0 || y < limit_min_y) {
 					i++;
 					//printf("%i,%i,%i(missed)\n", x, y, z);
 					continue;
@@ -482,9 +518,11 @@ void draw()
 
 	glMatrixMode( GL_MODELVIEW );
 	glLoadIdentity( );
-	gluLookAt(-1,64+distance,-1,8,64,8,0,1,0);
+	gluLookAt(-1,64+distance,-1,MAX_X*8,(128-limit_min_y)/2,MAX_Z*8,0,1,0);
+	glTranslatef(MAX_X*8, (128-limit_min_y)/2, MAX_Z*8);
 	glRotated(angle_x, 1, 0, 0);
 	glRotated(angle_y, 0, 1, 0);
+	glTranslatef(-MAX_X*8, -(128-limit_min_y)/2, -MAX_Z*8);
 	//printf("=====================\n");
 	glEnable(GL_VERTEX_ARRAY);
 	glEnableVertexAttribArray(type_arg);
