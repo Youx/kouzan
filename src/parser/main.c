@@ -303,7 +303,7 @@ int main(int argc, char *argv[])
 	glEnable(GL_COLOR_MATERIAL);
 	//glEnable(GL_LIGHTING) ;                 // Active la gestion des lumières
 	glEnable(GL_LIGHT0) ;                      // allume la lampe 0
-	//glEnable(GL_CULL_FACE);
+	glEnable(GL_CULL_FACE);
 	//glEnable(GL_NORMALIZE);
 	glShadeModel(GL_FLAT);
 	/* enable VBO */
