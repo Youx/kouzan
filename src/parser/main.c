@@ -16,7 +16,7 @@ int distance = 60;
 
 void draw();
 
-#define MAX_X 10
+#define MAX_X 15
 #define MAX_Z 9
 
 #define MIN(a, b) \
@@ -41,8 +41,8 @@ GLfloat blk_colors[255*3] =
 , 0.80, 0.63, 0.21	// gold ore
 , 0.64, 0.64, 0.64	// iron ore
 , 0.13, 0.13, 0.13	// coal ore
-, 0.0, 0.0, 0.0		// 17
-, 0.0, 0.0, 0.0		// 17
+, 0.32, 0.22, 0.0	// wood
+, 0.0, 0.5, 0.25	// leaf
 , 0.0, 0.0, 0.0		// 17
 , 0.0, 0.0, 0.0		// 17
 , 0.0, 0.0, 0.0		// 17
