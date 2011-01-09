@@ -17,8 +17,13 @@ int distance = 60;
 
 void draw();
 
+#define MIN_X -13
+#define MIN_Z -16
 #define MAX_X 15
 #define MAX_Z 9
+
+#define LEN_X (MAX_X - MIN_X)
+#define LEN_Z (MAX_Z - MIN_Z)
 
 struct vertex_t {
 	GLfloat x;	// 32 bits
@@ -30,7 +35,7 @@ struct vertex_t {
 }; /* total : 128 bits */
 
 int limit_min_y = 48;
-chunk_t *ch[MAX_X][MAX_Z];
+chunk_t *ch[LEN_X][LEN_Z];
 void build_vertex_arrays(chunk_t *ch, GLuint *indices, struct vertex_t *vertices, long *idx_idx);
 int need_redraw = 1;
 
@@ -40,12 +45,12 @@ int btn_down = 0;
 int old_x = 0, old_y = 0;
 #define BLK_PER_CHUNK (16*16*128)
 
-struct vertex_t vertices_pack[MAX_X][MAX_Z][8*BLK_PER_CHUNK];
+struct vertex_t vertices_pack[LEN_X][LEN_Z][8*BLK_PER_CHUNK];
 
-GLuint indices[MAX_X][MAX_Z][6*4*BLK_PER_CHUNK]; /* 786k longs */
-long idx_idx[MAX_X][MAX_Z];
+GLuint indices[LEN_X][LEN_Z][6*4*BLK_PER_CHUNK]; /* 786k longs */
+long idx_idx[LEN_X][LEN_Z];
 GLuint program_shd;
-GLuint vbo_ids[2*MAX_X*MAX_Z];
+GLuint vbo_ids[2*LEN_X*LEN_Z];
 
 void prepare_shader(char *vprog, char *pprog, GLuint *vertex, GLuint *pixel, GLuint *program)
 {
@@ -186,17 +191,20 @@ void keyboard(unsigned char key, int x, int y)
 	}
 	if (limit_min_y != limit_old) {
 	int x, z;
-	for (x = 0 ; x < MAX_X ; x++) {
-		for (z = 0 ; z < MAX_Z ; z++) {
-			idx_idx[x][z] = 0;
-			build_vertex_arrays(ch[x][z], indices[x][z], vertices_pack[x][z], &idx_idx[x][z]);
+	for (x = MIN_X ; x < MAX_X ; x++) {
+		for (z = MIN_Z ; z < MAX_Z ; z++) {
+			idx_idx[x-MIN_X][z-MIN_Z] = 0;
+			build_vertex_arrays(ch[x-MIN_X][z-MIN_Z], indices[x-MIN_X][z-MIN_Z],
+					vertices_pack[x-MIN_X][z-MIN_Z], &idx_idx[x-MIN_X][z-MIN_Z]);
 #ifdef _USE_VBO
 			/* bind and load indices */
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_ids[z*MAX_X*2+x*2]); /* index vbo */
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, (6*4*16*16*128*sizeof(GLuint)), indices[x][z], GL_STATIC_DRAW);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_ids[(z-MIN_Z)*LEN_X*2+(x-MIN_X)*2]); /* index vbo */
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, (6*4*16*16*128*sizeof(GLuint)),
+					indices[x-MIN_X][z-MIN_Z], GL_STATIC_DRAW);
 			/* bind and load vertices&shader args */
-			glBindBuffer(GL_ARRAY_BUFFER, vbo_ids[z*MAX_X*2+x*2+1]);	   /* vertex vbo */
-			glBufferData(GL_ARRAY_BUFFER, (8*BLK_PER_CHUNK*sizeof(struct vertex_t)), vertices_pack[x][z], GL_STATIC_DRAW);
+			glBindBuffer(GL_ARRAY_BUFFER, vbo_ids[(z-MIN_Z)*LEN_X*2+(x-MIN_X)*2+1]);	   /* vertex vbo */
+			glBufferData(GL_ARRAY_BUFFER, (8*BLK_PER_CHUNK*sizeof(struct vertex_t)),
+					vertices_pack[x-MIN_X][z-MIN_Z], GL_STATIC_DRAW);
 #endif
 		}
 	}
@@ -224,19 +232,20 @@ int main(int argc, char *argv[])
 
 	int x, z;
 	GLuint vprog, pprog;
-	for (x = 0; x < MAX_X ; x++) {
-		for (z = 0; z < MAX_Z ; z++) {
+	for (x = MIN_X; x < MAX_X ; x++) {
+		for (z = MIN_Z; z < MAX_Z ; z++) {
 			char chunk_name[256];
 			char *xdir, *zdir, *xfile, *zfile;
-			xdir = b36enc(MOD(x, 64));
-			zdir = b36enc(MOD(z, 64));
 			xfile = b36enc(x);
 			zfile = b36enc(z);
+			xdir = b36enc(MOD(x, 64));
+			zdir = b36enc(MOD(z, 64));
+			printf("%s / %s / %s / %s\n", xdir, zdir, xfile, zfile);
 			snprintf(chunk_name, sizeof(chunk_name), "../../save/world/%s/%s/c.%s.%s.dat", xdir, zdir, xfile, zfile);
 			printf("loading : %s\n", chunk_name);
-			ch[x][z] = chunk_parse(chunk_name);
-			ch[x][z]->pos.x = x;
-			ch[x][z]->pos.z = z;
+			ch[x-MIN_X][z-MIN_Z] = chunk_parse(chunk_name);
+			ch[x-MIN_X][z-MIN_Z]->pos.x = x;
+			ch[x-MIN_X][z-MIN_Z]->pos.z = z;
 			free(xdir);
 			free(zdir);
 			free(xfile);
@@ -265,7 +274,7 @@ int main(int argc, char *argv[])
 	glShadeModel(GL_FLAT);
 	/* enable VBO */
 #ifdef _USE_VBO
-	glGenBuffers(2*MAX_X*MAX_Z, vbo_ids);
+	glGenBuffers(2*LEN_X*LEN_Z, vbo_ids);
 #endif
 
 	printf("GL_VERSION : %s\n", glGetString(GL_VERSION));
@@ -274,16 +283,19 @@ int main(int argc, char *argv[])
 	glEnableClientState(GL_VERTEX_ARRAY);
         //glEnableClientState(GL_COLOR_ARRAY);
         //glEnableClientState(GL_NORMAL_ARRAY);
-	for (x = 0 ; x < MAX_X ; x++) {
-		for (z = 0 ; z < MAX_Z ; z++) {
-			build_vertex_arrays(ch[x][z], indices[x][z], vertices_pack[x][z], &idx_idx[x][z]);
+	for (x = MIN_X ; x < MAX_X ; x++) {
+		for (z = MIN_Z ; z < MAX_Z ; z++) {
+			build_vertex_arrays(ch[x-MIN_X][z-MIN_Z], indices[x-MIN_X][z-MIN_Z],
+					vertices_pack[x-MIN_X][z-MIN_Z], &idx_idx[x-MIN_X][z-MIN_Z]);
 #ifdef _USE_VBO
 			/* bind and load indices */
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_ids[z*MAX_X*2+x*2]); /* index vbo */
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, (6*4*16*16*128*sizeof(GLuint)), indices[x][z], GL_STATIC_DRAW);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_ids[(z-MIN_Z)*LEN_X*2+(x-MIN_X)*2]); /* index vbo */
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, (6*4*16*16*128*sizeof(GLuint)),
+					indices[x-MIN_X][z-MIN_Z], GL_STATIC_DRAW);
 			/* bind and load vertices&shader args */
-			glBindBuffer(GL_ARRAY_BUFFER, vbo_ids[z*MAX_X*2+x*2+1]);	   /* vertex vbo */
-			glBufferData(GL_ARRAY_BUFFER, (8*BLK_PER_CHUNK*sizeof(struct vertex_t)), vertices_pack[x][z], GL_STATIC_DRAW);
+			glBindBuffer(GL_ARRAY_BUFFER, vbo_ids[(z-MIN_Z)*LEN_X*2+(x-MIN_X)*2+1]);	   /* vertex vbo */
+			glBufferData(GL_ARRAY_BUFFER, (8*BLK_PER_CHUNK*sizeof(struct vertex_t)),
+					vertices_pack[x-MIN_X][z-MIN_Z], GL_STATIC_DRAW);
 #endif
 		}
 	}
@@ -585,26 +597,26 @@ void draw()
 	glEnableVertexAttribArray(type_arg);
 	glEnableVertexAttribArray(light_arg);
 	glEnableClientState(GL_VERTEX_ARRAY);
-	for (x = 0; x < MAX_X ; x++) {
-		for (z = 0; z < MAX_Z ; z++) {
+	for (x = MIN_X; x < MAX_X ; x++) {
+		for (z = MIN_Z; z < MAX_Z ; z++) {
 			/* link uniform data to shader */
 			glUniform3fv(colors_arg, 128, blk_colors);
 #ifdef _USE_VBO
 			/* bind VBOs */
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_ids[z*MAX_X*2+x*2]); /* index vbo */
-			glBindBuffer(GL_ARRAY_BUFFER, vbo_ids[z*MAX_X*2+x*2+1]);	   /* vertex vbo */
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_ids[(z-MIN_Z)*LEN_X*2+(x-MIN_X)*2]); /* index vbo */
+			glBindBuffer(GL_ARRAY_BUFFER, vbo_ids[(z-MIN_Z)*LEN_X*2+(x-MIN_X)*2+1]);	   /* vertex vbo */
 			/* point to data */
 			glVertexPointer(3, GL_FLOAT, sizeof(struct vertex_t), 0);
 			glVertexAttribPointer(type_arg, 1, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(struct vertex_t), sizeof(GLfloat) * 3);
 			glVertexAttribPointer(light_arg, 1, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(struct vertex_t), sizeof(GLubyte)+(sizeof(GLfloat)*3));
-			glDrawElements(GL_QUADS, idx_idx[x][z], GL_UNSIGNED_INT, (void *)0);
+			glDrawElements(GL_QUADS, idx_idx[x-MIN_X][z-MIN_Z], GL_UNSIGNED_INT, (void *)0);
 			//glDrawArrays(GL_QUADS, 0, idx_idx[x][z]);
 #else
-			glVertexPointer(3, GL_FLOAT, sizeof(struct vertex_t), &(vertices_pack[x][z][0].x));
-			glVertexAttribPointer(type_arg, 1, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(struct vertex_t), &(vertices_pack[x][z][0].type));
-			glVertexAttribPointer(light_arg, 1, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(struct vertex_t), &(vertices_pack[x][z][0].light));
+			glVertexPointer(3, GL_FLOAT, sizeof(struct vertex_t), &(vertices_pack[x-MIN_X][z-MIN_Z][0].x));
+			glVertexAttribPointer(type_arg, 1, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(struct vertex_t), &(vertices_pack[x-MIN_X][z-MIN_Z][0].type));
+			glVertexAttribPointer(light_arg, 1, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(struct vertex_t), &(vertices_pack[x-MIN_X][z-MIN_Z][0].light));
 			//glDrawArrays(GL_QUADS, 0, idx_idx[x][z]);
-			glDrawElements(GL_QUADS, idx_idx[x][z], GL_UNSIGNED_INT, indices[x][z]);
+			glDrawElements(GL_QUADS, idx_idx[x-MIN_X][z-MIN_Z], GL_UNSIGNED_INT, indices[x-MIN_X][z-MIN_Z]);
 #endif
 
 #ifdef _USE_VBO

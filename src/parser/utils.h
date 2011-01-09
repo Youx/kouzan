@@ -8,4 +8,6 @@
 #define MOD(x, mod) \
 	((x%mod) < 0 ? (x%mod)+mod : x%mod)
 
+char *b36enc(int val);
+
 #endif

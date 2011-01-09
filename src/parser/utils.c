@@ -1,5 +1,7 @@
-#include "utils.h"
 #include <stdlib.h>
+#include <stdio.h>
+
+#include "utils.h"
 
 char *b36enc(int val)
 {
@@ -31,5 +33,6 @@ char *b36enc(int val)
 		res[i] = res[len-i-1];
 		res[len-i-1] = tmp;
 	}
+	printf("%i => %s\n", val, res);
 	return res;
 }
