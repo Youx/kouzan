@@ -400,68 +400,183 @@ int write_cube_vertex_array(int x, int y, int z,
 		GLuint *indices, struct vertex_t *vertices_pack,
 		long *idx_idx, long *vert_idx)
 {
-	//int v = *vert_idx;
-	int a, b, c;
-
-	for (a = 0 ; a <= 1 ; a++) {
-		for (b = 0 ; b <= 1 ; b++) {
-			for (c = 0 ; c <= 1 ; c++) {
-				vertices_pack[(*vert_idx) + (a*4)+(b*2)+c].x = (x+a);
-				vertices_pack[(*vert_idx) + (a*4)+(b*2)+c].y = (y+b);
-				vertices_pack[(*vert_idx) + (a*4)+(b*2)+c].z = (z+c);
-				vertices_pack[(*vert_idx) + (a*4)+(b*2)+c].type = (GLubyte)type;
-				vertices_pack[(*vert_idx) + (a*4)+(b*2)+c].light = (GLubyte)light;
-			}
-		}
-	}
-	long i = *idx_idx;
 	if (!nghb->zplus) {
-		//glNormal3f(0.0f, 0.0f, 1.0f);
-		indices[i++] = (*vert_idx)+1;
-		indices[i++] = (*vert_idx)+5;
-		indices[i++] = (*vert_idx)+7;
-		indices[i++] = (*vert_idx)+3;
+		vertices_pack[*vert_idx].x = x;
+		vertices_pack[*vert_idx].y = y;
+		vertices_pack[*vert_idx].z = z+1;
+		vertices_pack[*vert_idx].type = (GLubyte)type;
+		vertices_pack[*vert_idx].light = (GLubyte)light;
+		indices[*vert_idx] = (*vert_idx)++;
+
+		vertices_pack[*vert_idx].x = x+1;
+		vertices_pack[*vert_idx].y = y;
+		vertices_pack[*vert_idx].z = z+1;
+		vertices_pack[*vert_idx].type = (GLubyte)type;
+		vertices_pack[*vert_idx].light = (GLubyte)light;
+		indices[*vert_idx] = (*vert_idx)++;
+
+		vertices_pack[*vert_idx].x = x+1;
+		vertices_pack[*vert_idx].y = y+1;
+		vertices_pack[*vert_idx].z = z+1;
+		vertices_pack[*vert_idx].type = (GLubyte)type;
+		vertices_pack[*vert_idx].light = (GLubyte)light;
+		indices[*vert_idx] = (*vert_idx)++;
+
+		vertices_pack[*vert_idx].x = x;
+		vertices_pack[*vert_idx].y = y+1;
+		vertices_pack[*vert_idx].z = z+1;
+		vertices_pack[*vert_idx].type = (GLubyte)type;
+		vertices_pack[*vert_idx].light = (GLubyte)light;
+		indices[*vert_idx] = (*vert_idx)++;
 	}
 	if (!nghb->zminus) {
-		//glNormal3f(0.0f, 0.0f, -1.0f);
-		indices[i++] = (*vert_idx)+0;
-		indices[i++] = (*vert_idx)+2;
-		indices[i++] = (*vert_idx)+6;
-		indices[i++] = (*vert_idx)+4;
+		vertices_pack[*vert_idx].x = x;
+		vertices_pack[*vert_idx].y = y;
+		vertices_pack[*vert_idx].z = z;
+		vertices_pack[*vert_idx].type = (GLubyte)type;
+		vertices_pack[*vert_idx].light = (GLubyte)light;
+		indices[*vert_idx] = (*vert_idx)++;
+
+		vertices_pack[*vert_idx].x = x;
+		vertices_pack[*vert_idx].y = y+1;
+		vertices_pack[*vert_idx].z = z;
+		vertices_pack[*vert_idx].type = (GLubyte)type;
+		vertices_pack[*vert_idx].light = (GLubyte)light;
+		indices[*vert_idx] = (*vert_idx)++;
+
+		vertices_pack[*vert_idx].x = x+1;
+		vertices_pack[*vert_idx].y = y+1;
+		vertices_pack[*vert_idx].z = z;
+		vertices_pack[*vert_idx].type = (GLubyte)type;
+		vertices_pack[*vert_idx].light = (GLubyte)light;
+		indices[*vert_idx] = (*vert_idx)++;
+
+		vertices_pack[*vert_idx].x = x+1;
+		vertices_pack[*vert_idx].y = y;
+		vertices_pack[*vert_idx].z = z;
+		vertices_pack[*vert_idx].type = (GLubyte)type;
+		vertices_pack[*vert_idx].light = (GLubyte)light;
+		indices[*vert_idx] = (*vert_idx)++;
 	}
 	if (!nghb->yplus) {
-		//glNormal3f(0.0f, 1.0f, 0.0f);
-		indices[i++] = (*vert_idx)+2;
-		indices[i++] = (*vert_idx)+3;
-		indices[i++] = (*vert_idx)+7;
-		indices[i++] = (*vert_idx)+6;
+		vertices_pack[*vert_idx].x = x;
+		vertices_pack[*vert_idx].y = y+1;
+		vertices_pack[*vert_idx].z = z;
+		vertices_pack[*vert_idx].type = (GLubyte)type;
+		vertices_pack[*vert_idx].light = (GLubyte)light;
+		indices[*vert_idx] = (*vert_idx)++;
+
+		vertices_pack[*vert_idx].x = x;
+		vertices_pack[*vert_idx].y = y+1;
+		vertices_pack[*vert_idx].z = z+1;
+		vertices_pack[*vert_idx].type = (GLubyte)type;
+		vertices_pack[*vert_idx].light = (GLubyte)light;
+		indices[*vert_idx] = (*vert_idx)++;
+
+		vertices_pack[*vert_idx].x = x+1;
+		vertices_pack[*vert_idx].y = y+1;
+		vertices_pack[*vert_idx].z = z+1;
+		vertices_pack[*vert_idx].type = (GLubyte)type;
+		vertices_pack[*vert_idx].light = (GLubyte)light;
+		indices[*vert_idx] = (*vert_idx)++;
+
+		vertices_pack[*vert_idx].x = x+1;
+		vertices_pack[*vert_idx].y = y+1;
+		vertices_pack[*vert_idx].z = z;
+		vertices_pack[*vert_idx].type = (GLubyte)type;
+		vertices_pack[*vert_idx].light = (GLubyte)light;
+		indices[*vert_idx] = (*vert_idx)++;
 	}
 	if (!nghb->yminus) {
-		//glNormal3f(0.0f, -1.0f, 0.0f);
-		indices[i++] = (*vert_idx)+0;
-		indices[i++] = (*vert_idx)+4;
-		indices[i++] = (*vert_idx)+5;
-		indices[i++] = (*vert_idx)+1;
+		vertices_pack[*vert_idx].x = x;
+		vertices_pack[*vert_idx].y = y;
+		vertices_pack[*vert_idx].z = z;
+		vertices_pack[*vert_idx].type = (GLubyte)type;
+		vertices_pack[*vert_idx].light = (GLubyte)light;
+		indices[*vert_idx] = (*vert_idx)++;
+
+		vertices_pack[*vert_idx].x = x+1;
+		vertices_pack[*vert_idx].y = y;
+		vertices_pack[*vert_idx].z = z;
+		vertices_pack[*vert_idx].type = (GLubyte)type;
+		vertices_pack[*vert_idx].light = (GLubyte)light;
+		indices[*vert_idx] = (*vert_idx)++;
+
+		vertices_pack[*vert_idx].x = x+1;
+		vertices_pack[*vert_idx].y = y;
+		vertices_pack[*vert_idx].z = z+1;
+		vertices_pack[*vert_idx].type = (GLubyte)type;
+		vertices_pack[*vert_idx].light = (GLubyte)light;
+		indices[*vert_idx] = (*vert_idx)++;
+
+		vertices_pack[*vert_idx].x = x;
+		vertices_pack[*vert_idx].y = y;
+		vertices_pack[*vert_idx].z = z+1;
+		vertices_pack[*vert_idx].type = (GLubyte)type;
+		vertices_pack[*vert_idx].light = (GLubyte)light;
+		indices[*vert_idx] = (*vert_idx)++;
 	}
 	if (!nghb->xplus) {
-		//glNormal3f(1.0f, 0.0f, 0.0f);
-		indices[i++] = (*vert_idx)+4;
-		indices[i++] = (*vert_idx)+6;
-		indices[i++] = (*vert_idx)+7;
-		indices[i++] = (*vert_idx)+5;
+		vertices_pack[*vert_idx].x = x+1;
+		vertices_pack[*vert_idx].y = y;
+		vertices_pack[*vert_idx].z = z;
+		vertices_pack[*vert_idx].type = (GLubyte)type;
+		vertices_pack[*vert_idx].light = (GLubyte)light;
+		indices[*vert_idx] = (*vert_idx)++;
+
+		vertices_pack[*vert_idx].x = x+1;
+		vertices_pack[*vert_idx].y = y+1;
+		vertices_pack[*vert_idx].z = z;
+		vertices_pack[*vert_idx].type = (GLubyte)type;
+		vertices_pack[*vert_idx].light = (GLubyte)light;
+		indices[*vert_idx] = (*vert_idx)++;
+
+		vertices_pack[*vert_idx].x = x+1;
+		vertices_pack[*vert_idx].y = y+1;
+		vertices_pack[*vert_idx].z = z+1;
+		vertices_pack[*vert_idx].type = (GLubyte)type;
+		vertices_pack[*vert_idx].light = (GLubyte)light;
+		indices[*vert_idx] = (*vert_idx)++;
+
+		vertices_pack[*vert_idx].x = x+1;
+		vertices_pack[*vert_idx].y = y;
+		vertices_pack[*vert_idx].z = z+1;
+		vertices_pack[*vert_idx].type = (GLubyte)type;
+		vertices_pack[*vert_idx].light = (GLubyte)light;
+		indices[*vert_idx] = (*vert_idx)++;
 	}
 	if (!nghb->xminus) {
-		//glNormal3f(x, 0.0f, 0.0f);
-		indices[i++] = (*vert_idx)+0;
-		indices[i++] = (*vert_idx)+1;
-		indices[i++] = (*vert_idx)+3;
-		indices[i++] = (*vert_idx)+2;
+		vertices_pack[*vert_idx].x = x;
+		vertices_pack[*vert_idx].y = y;
+		vertices_pack[*vert_idx].z = z;
+		vertices_pack[*vert_idx].type = (GLubyte)type;
+		vertices_pack[*vert_idx].light = (GLubyte)light;
+		indices[*vert_idx] = (*vert_idx)++;
+
+		vertices_pack[*vert_idx].x = x;
+		vertices_pack[*vert_idx].y = y;
+		vertices_pack[*vert_idx].z = z+1;
+		vertices_pack[*vert_idx].type = (GLubyte)type;
+		vertices_pack[*vert_idx].light = (GLubyte)light;
+		indices[*vert_idx] = (*vert_idx)++;
+
+		vertices_pack[*vert_idx].x = x;
+		vertices_pack[*vert_idx].y = y+1;
+		vertices_pack[*vert_idx].z = z+1;
+		vertices_pack[*vert_idx].type = (GLubyte)type;
+		vertices_pack[*vert_idx].light = (GLubyte)light;
+		indices[*vert_idx] = (*vert_idx)++;
+
+		vertices_pack[*vert_idx].x = x;
+		vertices_pack[*vert_idx].y = y+1;
+		vertices_pack[*vert_idx].z = z;
+		vertices_pack[*vert_idx].type = (GLubyte)type;
+		vertices_pack[*vert_idx].light = (GLubyte)light;
+		indices[*vert_idx] = (*vert_idx)++;
 	}
 
 
-
-	*idx_idx = i;	/* */
-	*vert_idx += 8;
+	*idx_idx = (*vert_idx);	/* */
 	return 0;
 }
 
@@ -492,9 +607,7 @@ void build_vertex_arrays(chunk_t *ch, GLuint *indices, struct vertex_t *vertices
 				}
 				//printf("type: %i\n", type);
 				unsigned char light = ((ch->sky_light[i/2] << (i%2 ? 4 : 0)));
-				if (light != 0 && light != 240)
-				printf("Light for cube is : %i\n", light);
-				write_cube_vertex_array(x+ch->pos.x*15, y, z+ch->pos.z*15, type, light,
+				write_cube_vertex_array(x+ch->pos.x*16, y, z+ch->pos.z*16, type, light,
 						&nghb,
 						indices, vertices,
 						idx_idx, &vert_idx);
@@ -541,10 +654,12 @@ void draw()
 			glVertexAttribPointer(type_arg, 1, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(struct vertex_t), sizeof(GLfloat) * 3);
 			glVertexAttribPointer(light_arg, 1, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(struct vertex_t), sizeof(GLubyte)+(sizeof(GLfloat)*3));
 			glDrawElements(GL_QUADS, idx_idx[x][z], GL_UNSIGNED_INT, (void *)0);
+			//glDrawArrays(GL_QUADS, 0, idx_idx[x][z]);
 #else
 			glVertexPointer(3, GL_FLOAT, sizeof(struct vertex_t), &(vertices_pack[x][z][0].x));
 			glVertexAttribPointer(type_arg, 1, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(struct vertex_t), &(vertices_pack[x][z][0].type));
 			glVertexAttribPointer(light_arg, 1, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(struct vertex_t), &(vertices_pack[x][z][0].light));
+			//glDrawArrays(GL_QUADS, 0, idx_idx[x][z]);
 			glDrawElements(GL_QUADS, idx_idx[x][z], GL_UNSIGNED_INT, indices[x][z]);
 #endif
 
