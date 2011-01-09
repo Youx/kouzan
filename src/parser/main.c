@@ -227,11 +227,20 @@ int main(int argc, char *argv[])
 	for (x = 0; x < MAX_X ; x++) {
 		for (z = 0; z < MAX_Z ; z++) {
 			char chunk_name[256];
-			snprintf(chunk_name, sizeof(chunk_name), "../../save/world/%x/%x/c.%x.%x.dat", x, z, x, z);
+			char *xdir, *zdir, *xfile, *zfile;
+			xdir = b36enc(MOD(x, 64));
+			zdir = b36enc(MOD(z, 64));
+			xfile = b36enc(x);
+			zfile = b36enc(z);
+			snprintf(chunk_name, sizeof(chunk_name), "../../save/world/%s/%s/c.%s.%s.dat", xdir, zdir, xfile, zfile);
 			printf("loading : %s\n", chunk_name);
 			ch[x][z] = chunk_parse(chunk_name);
 			ch[x][z]->pos.x = x;
 			ch[x][z]->pos.z = z;
+			free(xdir);
+			free(zdir);
+			free(xfile);
+			free(zfile);
 		}
 	}
 	glutInit(&argc, argv);
