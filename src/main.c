@@ -307,7 +307,7 @@ int main(int argc, char *argv[])
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
 	glLightfv(GL_LIGHT0, GL_POSITION, position);
 
-	prepare_shader("vertex.shd", "pixel.shd", &vprog, &pprog, &program_shd);
+	prepare_shader("shader.vert", "shader.frag", &vprog, &pprog, &program_shd);
 	glUseProgram(program_shd);
 
 #ifdef BENCHMARK
