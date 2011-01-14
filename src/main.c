@@ -562,7 +562,7 @@ void build_vertex_arrays(chunk_t *ch, GLuint *indices, struct vertex_t *vertices
 					continue;
 				}
 				//printf("type: %i\n", type);
-				unsigned char light = ((ch->sky_light[i/2] << (i%2 ? 4 : 0)));
+				unsigned char light = ((ch->sky_light[i/2] << (i%2==0 ? 4 : 0)) & 0xF0);
 				write_cube_vertex_array(x+ch->pos.x*16, y, z+ch->pos.z*16, type, light,
 						&nghb,
 						indices, vertices,

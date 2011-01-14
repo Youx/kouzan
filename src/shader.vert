@@ -1,4 +1,3 @@
-#version 410
 uniform vec3 colors[128];
 
 /* vertex shader */
