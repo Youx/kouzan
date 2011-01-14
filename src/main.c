@@ -38,6 +38,7 @@ int limit_min_y = 48;
 chunk_t *ch[LEN_X][LEN_Z];
 void build_vertex_arrays(chunk_t *ch, GLuint *indices, struct vertex_t *vertices, long *idx_idx);
 int need_redraw = 1;
+int hide_walls = 0;
 
 int count_redraws = 0;
 
@@ -181,6 +182,9 @@ void motion(int x, int y)
 void keyboard(unsigned char key, int x, int y)
 {
 	int limit_old = limit_min_y;
+	int hide_walls_old = hide_walls;
+	int recompute = 0;
+
 	switch(key) {
 		case '+':
 			limit_min_y = MAX(limit_min_y-8, 0);
@@ -188,26 +192,41 @@ void keyboard(unsigned char key, int x, int y)
 		case '-':
 			limit_min_y = MIN(limit_min_y+8, 64);
 			break;
+		case 'w': /* hide walls */
+			if (hide_walls) {
+				hide_walls = 0;
+				glEnable(GL_CULL_FACE);
+			} else {
+				hide_walls = 1;
+				glDisable(GL_CULL_FACE);
+			}
+			break;
 	}
-	if (limit_min_y != limit_old) {
-	int x, z;
-	for (x = MIN_X ; x < MAX_X ; x++) {
-		for (z = MIN_Z ; z < MAX_Z ; z++) {
-			idx_idx[x-MIN_X][z-MIN_Z] = 0;
-			build_vertex_arrays(ch[x-MIN_X][z-MIN_Z], indices[x-MIN_X][z-MIN_Z],
-					vertices_pack[x-MIN_X][z-MIN_Z], &idx_idx[x-MIN_X][z-MIN_Z]);
+	/* check if any change requires recomputing the arrays */
+	if (limit_min_y != limit_old)
+		recompute = 1;
+	if (hide_walls_old != hide_walls)
+		recompute = 1;
+
+	if (recompute) {
+		int x, z;
+		for (x = MIN_X ; x < MAX_X ; x++) {
+			for (z = MIN_Z ; z < MAX_Z ; z++) {
+				idx_idx[x-MIN_X][z-MIN_Z] = 0;
+				build_vertex_arrays(ch[x-MIN_X][z-MIN_Z], indices[x-MIN_X][z-MIN_Z],
+						vertices_pack[x-MIN_X][z-MIN_Z], &idx_idx[x-MIN_X][z-MIN_Z]);
 #ifdef _USE_VBO
-			/* bind and load indices */
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_ids[(z-MIN_Z)*LEN_X*2+(x-MIN_X)*2]); /* index vbo */
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, (6*4*16*16*128*sizeof(GLuint)),
-					indices[x-MIN_X][z-MIN_Z], GL_STATIC_DRAW);
-			/* bind and load vertices&shader args */
-			glBindBuffer(GL_ARRAY_BUFFER, vbo_ids[(z-MIN_Z)*LEN_X*2+(x-MIN_X)*2+1]);	   /* vertex vbo */
-			glBufferData(GL_ARRAY_BUFFER, (8*BLK_PER_CHUNK*sizeof(struct vertex_t)),
-					vertices_pack[x-MIN_X][z-MIN_Z], GL_STATIC_DRAW);
+				/* bind and load indices */
+				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_ids[(z-MIN_Z)*LEN_X*2+(x-MIN_X)*2]); /* index vbo */
+				glBufferData(GL_ELEMENT_ARRAY_BUFFER, (6*4*16*16*128*sizeof(GLuint)),
+						indices[x-MIN_X][z-MIN_Z], GL_STATIC_DRAW);
+				/* bind and load vertices&shader args */
+				glBindBuffer(GL_ARRAY_BUFFER, vbo_ids[(z-MIN_Z)*LEN_X*2+(x-MIN_X)*2+1]);	   /* vertex vbo */
+				glBufferData(GL_ARRAY_BUFFER, (8*BLK_PER_CHUNK*sizeof(struct vertex_t)),
+						vertices_pack[x-MIN_X][z-MIN_Z], GL_STATIC_DRAW);
 #endif
+			}
 		}
-	}
 		glutPostRedisplay();
 	}
 }
@@ -281,8 +300,8 @@ int main(int argc, char *argv[])
 	printf("GL_SHADING_VERSION : %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
 	/* vertex arrays */
 	glEnableClientState(GL_VERTEX_ARRAY);
-        //glEnableClientState(GL_COLOR_ARRAY);
-        //glEnableClientState(GL_NORMAL_ARRAY);
+	//glEnableClientState(GL_COLOR_ARRAY);
+	//glEnableClientState(GL_NORMAL_ARRAY);
 	for (x = MIN_X ; x < MAX_X ; x++) {
 		for (z = MIN_Z ; z < MAX_Z ; z++) {
 			build_vertex_arrays(ch[x-MIN_X][z-MIN_Z], indices[x-MIN_X][z-MIN_Z],
@@ -544,8 +563,8 @@ void fill_nghbs(chunk_t *c, int x, int y, int z, neighbours_t *nghb)
 	int i = (x*128*16)+(z*128)+y;
 
 	/* compute vertical neighbours */
-	if (y == 0)
-		nghb->yminus = 0;
+	if (y == limit_min_y)
+		nghb->yminus = hide_walls;
 	else
 		nghb->yminus = c->blocks[i-1];
 	if (y == 127)
@@ -558,7 +577,7 @@ void fill_nghbs(chunk_t *c, int x, int y, int z, neighbours_t *nghb)
 		if (c->pos.z > MIN_Z)
 			nghb->zminus = GET_CHUNK_BLOCK_TYPE(c->pos.x, c->pos.z-1, x, y, 15);
 		else
-			nghb->zminus = 0;
+			nghb->zminus = hide_walls;
 	} else {
 		nghb->zminus = c->blocks[i-128];
 	}
@@ -567,7 +586,7 @@ void fill_nghbs(chunk_t *c, int x, int y, int z, neighbours_t *nghb)
 		if (c->pos.z < MAX_Z-1)
 			nghb->zplus = GET_CHUNK_BLOCK_TYPE(c->pos.x, c->pos.z+1, x, y, 0);
 		else
-			nghb->zplus = 0;
+			nghb->zplus = hide_walls;
 	} else {
 		nghb->zplus = c->blocks[i+128];
 	}
@@ -577,7 +596,7 @@ void fill_nghbs(chunk_t *c, int x, int y, int z, neighbours_t *nghb)
 		if (c->pos.x > MIN_X)
 			nghb->xminus = GET_CHUNK_BLOCK_TYPE(c->pos.x-1, c->pos.z, 15, y, z);
 		else
-			nghb->xminus = 0;
+			nghb->xminus = hide_walls;
 	} else {
 		nghb->xminus = c->blocks[i-(128*16)];
 	}
@@ -585,7 +604,7 @@ void fill_nghbs(chunk_t *c, int x, int y, int z, neighbours_t *nghb)
 		if (c->pos.x < MAX_X-1)
 			nghb->xplus = GET_CHUNK_BLOCK_TYPE(c->pos.x+1, c->pos.z, 0, y, z);
 		else
-			nghb->xplus = 0;
+			nghb->xplus = hide_walls;
 	else
 		nghb->xplus = c->blocks[i+(128*16)];
 }
