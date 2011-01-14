@@ -536,6 +536,60 @@ int write_cube_vertex_array(int x, int y, int z,
 	return 0;
 }
 
+#define GET_CHUNK_BLOCK_TYPE(ch_x, ch_z, x, y, z) \
+	(ch[ch_x-MIN_X][ch_z-MIN_Z]->blocks[(x*128*16)+(z*128)+y])
+
+void fill_nghbs(chunk_t *c, int x, int y, int z, neighbours_t *nghb)
+{
+	int i = (x*128*16)+(z*128)+y;
+
+	/* compute vertical neighbours */
+	if (y == 0)
+		nghb->yminus = 0;
+	else
+		nghb->yminus = c->blocks[i-1];
+	if (y == 127)
+		nghb->yplus = 0;
+	else
+		nghb->yplus = c->blocks[i+1];
+
+	/* compute Z neighbours */
+	if (z == 0) {
+		if (c->pos.z > MIN_Z)
+			nghb->zminus = GET_CHUNK_BLOCK_TYPE(c->pos.x, c->pos.z-1, x, y, 15);
+		else
+			nghb->zminus = 0;
+	} else {
+		nghb->zminus = c->blocks[i-128];
+	}
+
+	if (z == 15) {
+		if (c->pos.z < MAX_Z-1)
+			nghb->zplus = GET_CHUNK_BLOCK_TYPE(c->pos.x, c->pos.z+1, x, y, 0);
+		else
+			nghb->zplus = 0;
+	} else {
+		nghb->zplus = c->blocks[i+128];
+	}
+
+	/* compute X neighbours */
+	if (x == 0) {
+		if (c->pos.x > MIN_X)
+			nghb->xminus = GET_CHUNK_BLOCK_TYPE(c->pos.x-1, c->pos.z, 15, y, z);
+		else
+			nghb->xminus = 0;
+	} else {
+		nghb->xminus = c->blocks[i-(128*16)];
+	}
+	if (x == 15)
+		if (c->pos.x < MAX_X-1)
+			nghb->xplus = GET_CHUNK_BLOCK_TYPE(c->pos.x+1, c->pos.z, 0, y, z);
+		else
+			nghb->xplus = 0;
+	else
+		nghb->xplus = c->blocks[i+(128*16)];
+}
+
 void build_vertex_arrays(chunk_t *ch, GLuint *indices, struct vertex_t *vertices, long *idx_idx)
 {
 	long i;
@@ -544,18 +598,13 @@ void build_vertex_arrays(chunk_t *ch, GLuint *indices, struct vertex_t *vertices
 	i = 0;
 
 	long vert_idx = 0;
-
+	int chunk_x, chunk_y;
 	for (x = 0 ; x < 16 ; x++) {
 		for (z = 0 ; z < 16 ; z++) {
 			for (y = 0 ; y < 128 ; y++) {
 				char type = ch->blocks[i];
-				nghb.yplus = (y+1 < 127) ? ch->blocks[i+1] : 0;
-				nghb.yminus = (y-1 > limit_min_y) ? ch->blocks[i-1] : 0;
-				nghb.zplus = (z+1 < 15) ? ch->blocks[i+128] : 0;
-				nghb.zminus = (z-1 > 0) ? ch->blocks[i-128] : 0;
-				nghb.xplus = (x+1 < 15) ? ch->blocks[i+(128*16)] : 0;
-				nghb.xminus = (x-1 > 0) ? ch->blocks[i-(128*16)] : 0;
 				//printf("computed id : %i VS expected : %i\n", y+(z*128)+(x*128*16), i);
+				fill_nghbs(ch, x, y, z, &nghb);
 				if (type == 0 || y < limit_min_y) {
 					i++;
 					//printf("%i,%i,%i(missed)\n", x, y, z);
