@@ -2,18 +2,19 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.68])
-AC_INIT([FULL-PACKAGE-NAME], [VERSION], [BUG-REPORT-ADDRESS])
-AC_CONFIG_SRCDIR([src/chunk.c])
+AC_INIT(kouzan, 0.1, [BUG-REPORT-ADDRESS])
+AM_INIT_AUTOMAKE(kouzan, 0.1, [NO-DEFINE])
+AC_CONFIG_SRCDIR([src/main.c])
 AC_CONFIG_HEADERS([config.h])
 
 # Checks for programs.
 AC_PROG_CC
+AC_PROG_LIBTOOL
 
 # Checks for libraries.
 AC_CHECK_LIB([GL], [glBegin])
 AC_CHECK_LIB([GLU], [gluLookAt])
 AC_CHECK_LIB([glut], [glutMouseFunc])
-AC_CHECK_LIB([nbt], [nbt_init])
 AC_CHECK_LIB([z], [gzopen])
 
 # Checks for header files.
@@ -33,5 +34,5 @@ AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 AC_CHECK_FUNCS([memset])
 
-AC_CONFIG_FILES([src/Makefile])
+AC_CONFIG_FILES([Makefile src/Makefile])
 AC_OUTPUT
