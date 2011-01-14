@@ -15,6 +15,6 @@ void main(void) {
 	vec4 v = gl_ModelViewMatrix * gl_Vertex;
 	light = lightpos - v.xyz;
 	/* color lookup from type + apply light from sun */
-	color = colors[uint(type)] * (blk_light + 4.0)/5.0;
+	color = colors[int(type)] * (blk_light + 4.0)/5.0;
 	gl_Position = ftransform();
 }
