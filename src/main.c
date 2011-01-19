@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <getopt.h>
 
 #include "chunk.h"
 #include "colors.h"
@@ -243,19 +244,53 @@ void print_vertices(GLfloat *vertices)
 {
 	int i;
 	for (i=0 ; i < 16 ; i++) {
-		printf("vert: {%f, %f, %f}\n", vertices[i*3], vertices[i*3+1], vertices[i*3+2]);
+		//printf("vert: {%f, %f, %f}\n", vertices[i*3], vertices[i*3+1], vertices[i*3+2]);
 	}
 }
 void print_indices(GLuint *indices)
 {
 	int i;
 	for (i=0 ; i < 16 ; i++) {
-		printf("indices: {%i, %i, %i, %i}\n", indices[i*4], indices[i*4+1], indices[i*4+2],indices[i*4+3]);
+		//printf("indices: {%i, %i, %i, %i}\n", indices[i*4], indices[i*4+1], indices[i*4+2],indices[i*4+3]);
 	}
 }
 
 int main(int argc, char *argv[])
 {
+	static struct option long_options[] = {
+		{"x-min", 1, 0, 'x'},
+		{"x-max", 1, 0, 'X'},
+		{"z-min", 1, 0, 'z'},
+		{"z-max", 1, 0, 'Z'},
+		{"world", 1, 0, 'w'},
+		{"nether", 1, 0, 'n'},
+		{NULL, 0, NULL, 0}
+	};
+	int option_index = 0;
+	int c;
+
+	while ((c = getopt_long(argc, argv, "x:X:z:Z:w:n", long_options, &option_index)) != -1) {
+		switch (c) {
+		case 'x':
+			printf("x option set\n");
+			break;
+		case 'X':
+			printf("X option set\n");
+			break;
+		case 'z':
+			printf("z option set\n");
+			break;
+		case 'Z':
+			printf("Z option set\n");
+			break;
+		case 'w':
+			printf("w option set\n");
+			break;
+		case 'n':
+			printf("n option set\n");
+			break;
+		}
+	}
 
 	int x, z;
 	GLuint vprog, pprog;
