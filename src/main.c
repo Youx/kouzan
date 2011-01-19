@@ -23,6 +23,7 @@ int angle_x = 0;
 int angle_y = 0;
 int angle_z = 0;
 int distance = 60;
+int limit_min_y = 48;
 
 void draw();
 
@@ -43,9 +44,11 @@ struct vertex_t {
 	GLubyte padding[2];// 16 bits
 }; /* total : 128 bits */
 
-int limit_min_y = 48;
+
 chunk_t *ch[LEN_X][LEN_Z];
-void build_vertex_arrays(chunk_t *ch, GLuint *indices, struct vertex_t *vertices, long *idx_idx);
+#define CHUNK_GET(x, z) \
+	(ch[x-MIN_X][z-MIN_Z])
+
 int need_redraw = 1;
 int hide_walls = 0;
 
@@ -55,10 +58,18 @@ int btn_down = 0;
 int old_x = 0, old_y = 0;
 #define BLK_PER_CHUNK (16*16*128)
 
+#define VPACK_GET(x, z) \
+	(vertices_pack[x-MIN_X][z-MIN_Z])
 struct vertex_t vertices_pack[LEN_X][LEN_Z][8*BLK_PER_CHUNK];
 
+#define IDX_GET(x, z) \
+	(indices[x-MIN_X][z-MIN_Z])
 GLuint indices[LEN_X][LEN_Z][6*4*BLK_PER_CHUNK]; /* 786k longs */
+
+#define IDX_IDX_GET(x, z) \
+	(idx_idx[x-MIN_X][z-MIN_Z])
 long idx_idx[LEN_X][LEN_Z];
+
 GLuint program_shd;
 GLuint vbo_ids[2*LEN_X*LEN_Z];
 
@@ -222,17 +233,17 @@ void keyboard(unsigned char key, int x, int y)
 		for (x = MIN_X ; x < MAX_X ; x++) {
 			for (z = MIN_Z ; z < MAX_Z ; z++) {
 				idx_idx[x-MIN_X][z-MIN_Z] = 0;
-				build_vertex_arrays(ch[x-MIN_X][z-MIN_Z], indices[x-MIN_X][z-MIN_Z],
-						vertices_pack[x-MIN_X][z-MIN_Z], &idx_idx[x-MIN_X][z-MIN_Z]);
+				build_vertex_arrays(CHUNK_GET(x,z), IDX_GET(x, z),
+						VPACK_GET(x, z), &IDX_IDX_GET(x, z));
 #ifdef _USE_VBO
 				/* bind and load indices */
 				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_ids[(z-MIN_Z)*LEN_X*2+(x-MIN_X)*2]); /* index vbo */
 				glBufferData(GL_ELEMENT_ARRAY_BUFFER, (6*4*16*16*128*sizeof(GLuint)),
-						indices[x-MIN_X][z-MIN_Z], GL_STATIC_DRAW);
+						IDX_GET(x, z), GL_STATIC_DRAW);
 				/* bind and load vertices&shader args */
 				glBindBuffer(GL_ARRAY_BUFFER, vbo_ids[(z-MIN_Z)*LEN_X*2+(x-MIN_X)*2+1]);	   /* vertex vbo */
 				glBufferData(GL_ARRAY_BUFFER, (8*BLK_PER_CHUNK*sizeof(struct vertex_t)),
-						vertices_pack[x-MIN_X][z-MIN_Z], GL_STATIC_DRAW);
+						VPACK_GET(x, z), GL_STATIC_DRAW);
 #endif
 			}
 		}
@@ -305,9 +316,9 @@ int main(int argc, char *argv[])
 			//printf("%s / %s / %s / %s\n", xdir, zdir, xfile, zfile);
 			snprintf(chunk_name, sizeof(chunk_name), "../save/world/%s/%s/c.%s.%s.dat", xdir, zdir, xfile, zfile);
 			//printf("loading : %s\n", chunk_name);
-			ch[x-MIN_X][z-MIN_Z] = chunk_parse(chunk_name);
-			ch[x-MIN_X][z-MIN_Z]->pos.x = x;
-			ch[x-MIN_X][z-MIN_Z]->pos.z = z;
+			CHUNK_GET(x, z) = chunk_parse(chunk_name);
+			CHUNK_GET(x, z)->pos.x = x;
+			CHUNK_GET(x, z)->pos.z = z;
 			free(xdir);
 			free(zdir);
 			free(xfile);
@@ -347,17 +358,17 @@ int main(int argc, char *argv[])
 	//glEnableClientState(GL_NORMAL_ARRAY);
 	for (x = MIN_X ; x < MAX_X ; x++) {
 		for (z = MIN_Z ; z < MAX_Z ; z++) {
-			build_vertex_arrays(ch[x-MIN_X][z-MIN_Z], indices[x-MIN_X][z-MIN_Z],
-					vertices_pack[x-MIN_X][z-MIN_Z], &idx_idx[x-MIN_X][z-MIN_Z]);
+			build_vertex_arrays(CHUNK_GET(x, z), IDX_GET(x, z),
+					VPACK_GET(x, z), &IDX_IDX_GET(x, z));
 #ifdef _USE_VBO
 			/* bind and load indices */
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_ids[(z-MIN_Z)*LEN_X*2+(x-MIN_X)*2]); /* index vbo */
 			glBufferData(GL_ELEMENT_ARRAY_BUFFER, (6*4*16*16*128*sizeof(GLuint)),
-					indices[x-MIN_X][z-MIN_Z], GL_STATIC_DRAW);
+					IDX_GET(x, z), GL_STATIC_DRAW);
 			/* bind and load vertices&shader args */
 			glBindBuffer(GL_ARRAY_BUFFER, vbo_ids[(z-MIN_Z)*LEN_X*2+(x-MIN_X)*2+1]);	   /* vertex vbo */
 			glBufferData(GL_ARRAY_BUFFER, (8*BLK_PER_CHUNK*sizeof(struct vertex_t)),
-					vertices_pack[x-MIN_X][z-MIN_Z], GL_STATIC_DRAW);
+					VPACK_GET(x, z), GL_STATIC_DRAW);
 #endif
 		}
 	}
@@ -599,7 +610,7 @@ int write_cube_vertex_array(int x, int y, int z,
 }
 
 #define GET_CHUNK_BLOCK_TYPE(ch_x, ch_z, x, y, z) \
-	(ch[ch_x-MIN_X][ch_z-MIN_Z]->blocks[(x*128*16)+(z*128)+y])
+	(CHUNK_GET(ch_x, ch_z)->blocks[(x*128*16)+(z*128)+y])
 
 void fill_nghbs(chunk_t *c, int x, int y, int z, neighbours_t *nghb)
 {
@@ -660,7 +671,6 @@ void build_vertex_arrays(chunk_t *ch, GLuint *indices, struct vertex_t *vertices
 	i = 0;
 
 	long vert_idx = 0;
-	int chunk_x, chunk_y;
 	for (x = 0 ; x < 16 ; x++) {
 		for (z = 0 ; z < 16 ; z++) {
 			for (y = 0 ; y < 128 ; y++) {
