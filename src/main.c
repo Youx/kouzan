@@ -27,10 +27,10 @@ int limit_min_y = 48;
 
 void draw();
 
-int MIN_X = -13;
-int MIN_Z = -16;
-int MAX_X = 15;
-int MAX_Z = 9;
+int MIN_X = 0;
+int MIN_Z = 0;
+int MAX_X = 1;
+int MAX_Z = 1;
 
 int LEN_X = -1;
 int LEN_Z = -1;
@@ -301,16 +301,16 @@ int main(int argc, char *argv[])
 	while ((c = getopt_long(argc, argv, "x:X:z:Z:w:n", long_options, &option_index)) != -1) {
 		switch (c) {
 		case 'x':
-			printf("x option set\n");
+			MIN_X = atoi(optarg);
 			break;
 		case 'X':
-			printf("X option set\n");
+			MAX_X = atoi(optarg);
 			break;
 		case 'z':
-			printf("z option set\n");
+			MIN_Z = atoi(optarg);
 			break;
 		case 'Z':
-			printf("Z option set\n");
+			MAX_Z = atoi(optarg);
 			break;
 		case 'w':
 			printf("w option set\n");
