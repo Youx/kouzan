@@ -33,6 +33,6 @@ char *b36enc(int val)
 		res[i] = res[len-i-1];
 		res[len-i-1] = tmp;
 	}
-	printf("%i => %s\n", val, res);
+	//printf("%i => %s\n", val, res);
 	return res;
 }

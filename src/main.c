@@ -267,9 +267,9 @@ int main(int argc, char *argv[])
 			zfile = b36enc(z);
 			xdir = b36enc(MOD(x, 64));
 			zdir = b36enc(MOD(z, 64));
-			printf("%s / %s / %s / %s\n", xdir, zdir, xfile, zfile);
+			//printf("%s / %s / %s / %s\n", xdir, zdir, xfile, zfile);
 			snprintf(chunk_name, sizeof(chunk_name), "../save/world/%s/%s/c.%s.%s.dat", xdir, zdir, xfile, zfile);
-			printf("loading : %s\n", chunk_name);
+			//printf("loading : %s\n", chunk_name);
 			ch[x-MIN_X][z-MIN_Z] = chunk_parse(chunk_name);
 			ch[x-MIN_X][z-MIN_Z]->pos.x = x;
 			ch[x-MIN_X][z-MIN_Z]->pos.z = z;
