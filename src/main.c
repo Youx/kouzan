@@ -27,13 +27,13 @@ int limit_min_y = 48;
 
 void draw();
 
-#define MIN_X -13
-#define MIN_Z -16
-#define MAX_X 15
-#define MAX_Z 9
+int MIN_X = -13;
+int MIN_Z = -16;
+int MAX_X = 15;
+int MAX_Z = 9;
 
-#define LEN_X (MAX_X - MIN_X)
-#define LEN_Z (MAX_Z - MIN_Z)
+int LEN_X = -1;
+int LEN_Z = -1;
 
 struct vertex_t {
 	GLfloat x;	// 32 bits
@@ -45,9 +45,9 @@ struct vertex_t {
 }; /* total : 128 bits */
 
 
-chunk_t *ch[LEN_X][LEN_Z];
+chunk_t **ch;
 #define CHUNK_GET(x, z) \
-	(ch[x-MIN_X][z-MIN_Z])
+	(ch[(x-MIN_X)*LEN_Z + (z-MIN_Z)])
 
 int need_redraw = 1;
 int hide_walls = 0;
@@ -59,19 +59,37 @@ int old_x = 0, old_y = 0;
 #define BLK_PER_CHUNK (16*16*128)
 
 #define VPACK_GET(x, z) \
-	(vertices_pack[x-MIN_X][z-MIN_Z])
-struct vertex_t vertices_pack[LEN_X][LEN_Z][8*BLK_PER_CHUNK];
+	(vertices_pack[(x-MIN_X)*LEN_Z + (z-MIN_Z)])
+struct vertex_t **vertices_pack = NULL;
 
 #define IDX_GET(x, z) \
-	(indices[x-MIN_X][z-MIN_Z])
-GLuint indices[LEN_X][LEN_Z][6*4*BLK_PER_CHUNK]; /* 786k longs */
+	(indices[(x-MIN_X)*LEN_Z + (z-MIN_Z)])
+GLuint **indices = NULL; /* 786k longs */
 
 #define IDX_IDX_GET(x, z) \
-	(idx_idx[x-MIN_X][z-MIN_Z])
-long idx_idx[LEN_X][LEN_Z];
+	(idx_idx[(x-MIN_X)*LEN_Z + (z-MIN_Z)])
+long *idx_idx = NULL;
 
 GLuint program_shd;
-GLuint vbo_ids[2*LEN_X*LEN_Z];
+GLuint *vbo_ids = NULL;
+
+void init_data(int min_x, int max_x, int min_z, int max_z)
+{
+	int i;
+
+	LEN_X = max_x - min_x;
+	LEN_Z = max_z - min_z;
+
+	vbo_ids = calloc(2*LEN_X*LEN_Z, sizeof(GLuint));
+	ch = calloc(LEN_X * LEN_Z, sizeof(chunk_t));
+	vertices_pack = calloc(LEN_X * LEN_Z, sizeof(struct vertex_t *));
+	for (i=0 ; i < LEN_X*LEN_Z ; i++)
+		vertices_pack[i] = calloc(8*BLK_PER_CHUNK, sizeof(struct vertex_t));
+	indices = calloc(LEN_X * LEN_Z, sizeof(GLuint *));
+	for (i=0 ; i < LEN_X*LEN_Z ; i++)
+		indices[i] = calloc(6*4*BLK_PER_CHUNK, sizeof(GLuint));
+	idx_idx = calloc(LEN_X*LEN_Z, sizeof(GLuint));
+}
 
 void prepare_shader(char *vprog, char *pprog, GLuint *vertex, GLuint *pixel, GLuint *program)
 {
@@ -232,7 +250,7 @@ void keyboard(unsigned char key, int x, int y)
 		int x, z;
 		for (x = MIN_X ; x < MAX_X ; x++) {
 			for (z = MIN_Z ; z < MAX_Z ; z++) {
-				idx_idx[x-MIN_X][z-MIN_Z] = 0;
+				IDX_IDX_GET(x, z) = 0;
 				build_vertex_arrays(CHUNK_GET(x,z), IDX_GET(x, z),
 						VPACK_GET(x, z), &IDX_IDX_GET(x, z));
 #ifdef _USE_VBO
@@ -302,6 +320,8 @@ int main(int argc, char *argv[])
 			break;
 		}
 	}
+
+	init_data(MIN_X, MAX_X, MIN_Z, MAX_Z);
 
 	int x, z;
 	GLuint vprog, pprog;
@@ -617,7 +637,7 @@ void fill_nghbs(chunk_t *c, int x, int y, int z, neighbours_t *nghb)
 	int i = (x*128*16)+(z*128)+y;
 
 	/* compute vertical neighbours */
-	if (y == limit_min_y)
+	if (y <= limit_min_y)
 		nghb->yminus = hide_walls;
 	else
 		nghb->yminus = c->blocks[i-1];
@@ -663,7 +683,7 @@ void fill_nghbs(chunk_t *c, int x, int y, int z, neighbours_t *nghb)
 		nghb->xplus = c->blocks[i+(128*16)];
 }
 
-void build_vertex_arrays(chunk_t *ch, GLuint *indices, struct vertex_t *vertices, long *idx_idx)
+void build_vertex_arrays(chunk_t *c, GLuint *indices, struct vertex_t *vertices, long *idx_idx)
 {
 	long i;
 	int x, y, z;
@@ -674,17 +694,17 @@ void build_vertex_arrays(chunk_t *ch, GLuint *indices, struct vertex_t *vertices
 	for (x = 0 ; x < 16 ; x++) {
 		for (z = 0 ; z < 16 ; z++) {
 			for (y = 0 ; y < 128 ; y++) {
-				char type = ch->blocks[i];
+				char type = c->blocks[i];
 				//printf("computed id : %i VS expected : %i\n", y+(z*128)+(x*128*16), i);
-				fill_nghbs(ch, x, y, z, &nghb);
+				fill_nghbs(c, x, y, z, &nghb);
 				if (type == 0 || y < limit_min_y) {
 					i++;
 					//printf("%i,%i,%i(missed)\n", x, y, z);
 					continue;
 				}
 				//printf("type: %i\n", type);
-				unsigned char light = ((ch->sky_light[i/2] << (i%2==0 ? 4 : 0)) & 0xF0);
-				write_cube_vertex_array(x+ch->pos.x*16, y, z+ch->pos.z*16, type, light,
+				unsigned char light = ((c->sky_light[i/2] << (i%2==0 ? 4 : 0)) & 0xF0);
+				write_cube_vertex_array(x+c->pos.x*16, y, z+c->pos.z*16, type, light,
 						&nghb,
 						indices, vertices,
 						idx_idx, &vert_idx);
@@ -730,14 +750,14 @@ void draw()
 			glVertexPointer(3, GL_FLOAT, sizeof(struct vertex_t), 0);
 			glVertexAttribPointer(type_arg, 1, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(struct vertex_t), sizeof(GLfloat) * 3);
 			glVertexAttribPointer(light_arg, 1, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(struct vertex_t), sizeof(GLubyte)+(sizeof(GLfloat)*3));
-			glDrawElements(GL_QUADS, idx_idx[x-MIN_X][z-MIN_Z], GL_UNSIGNED_INT, (void *)0);
+			glDrawElements(GL_QUADS, IDX_IDX_GET(x, z), GL_UNSIGNED_INT, (void *)0);
 			//glDrawArrays(GL_QUADS, 0, idx_idx[x][z]);
 #else
-			glVertexPointer(3, GL_FLOAT, sizeof(struct vertex_t), &(vertices_pack[x-MIN_X][z-MIN_Z][0].x));
-			glVertexAttribPointer(type_arg, 1, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(struct vertex_t), &(vertices_pack[x-MIN_X][z-MIN_Z][0].type));
-			glVertexAttribPointer(light_arg, 1, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(struct vertex_t), &(vertices_pack[x-MIN_X][z-MIN_Z][0].light));
+			glVertexPointer(3, GL_FLOAT, sizeof(struct vertex_t), &(VPACK_GET(x, z)[0].x));
+			glVertexAttribPointer(type_arg, 1, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(struct vertex_t), &(VPACK_GET(x, z)[0].type));
+			glVertexAttribPointer(light_arg, 1, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(struct vertex_t), &(VPACK_GET(x, z)[0].light));
 			//glDrawArrays(GL_QUADS, 0, idx_idx[x][z]);
-			glDrawElements(GL_QUADS, idx_idx[x-MIN_X][z-MIN_Z], GL_UNSIGNED_INT, indices[x-MIN_X][z-MIN_Z]);
+			glDrawElements(GL_QUADS, IDX_IDX_GET(x, z), GL_UNSIGNED_INT, IDX_GET(x, z));
 #endif
 
 #ifdef _USE_VBO
