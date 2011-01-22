@@ -1,2 +1,0 @@
-#./configure LDFLAGS="-L/System/Library/Frameworks/OpenGL.framework/Libraries -L/System/Library/Frameworks/GLUT.framework/Libraries"
-./configure LDFLAGS="-framework OpenGL -framework GLUT"

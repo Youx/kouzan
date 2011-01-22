@@ -1,7 +1,6 @@
 bin_PROGRAMS = kouzan
 noinst_LTLIBRARIES = libnbt.la
 
-AM_CPPFLAGS=-mcmodel=large
 kouzan_SOURCES =	\
 	chunk.c		\
 	main.c		\

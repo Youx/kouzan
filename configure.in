@@ -12,9 +12,18 @@ AC_PROG_CC
 AC_PROG_LIBTOOL
 
 # Checks for libraries.
-AC_CHECK_LIB([GL], [glBegin])
-AC_CHECK_LIB([GLU], [gluLookAt])
-AC_CHECK_LIB([glut], [glutMouseFunc])
+case $host_os in
+  darwin* )
+	LDFLAGS+='-framework OpenGL -framework GLUT'
+        ;;
+    *)
+	AC_CHECK_LIB([GL], [glBegin])
+	AC_CHECK_LIB([GLU], [gluLookAt])
+	AC_CHECK_LIB([glut], [glutMouseFunc])
+	CPPFLAGS+='-mcmodel=large'
+        ;;
+esac
+
 AC_CHECK_LIB([z], [gzopen])
 
 # Checks for header files.
