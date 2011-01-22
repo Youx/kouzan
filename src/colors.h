@@ -88,5 +88,10 @@ GLfloat blk_colors[255*3] =
 
 #endif
 
+#if __APPLE__
+#include <OpenGL/gl.h>
+#else
 #include <GL/gl.h>
+#endif
+
 extern GLfloat blk_colors[255*3];
